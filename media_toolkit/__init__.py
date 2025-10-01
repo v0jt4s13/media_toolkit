@@ -6,14 +6,14 @@ from pathlib import Path
 from flask import Flask, redirect, render_template, request, session, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from .config import get_config
-from .auth import build_users, login_required, log_entry_access
+from config import get_config
+from auth import build_users, login_required, log_entry_access
 
 # Ensure environment variables are ready before importing blueprints that rely on them.
 get_config()
 
-from .audiototext import audiototext_bp  # noqa: E402  (import after config)
-from .content import content_bp  # noqa: E402
+from audiototext.routes import audiototext_bp  # noqa: E402  (import after config)
+from content import content_bp  # noqa: E402
 
 _PACKAGE_ROOT = Path(__file__).resolve().parent
 _TEMPLATES_DIR = _PACKAGE_ROOT / "templates"
