@@ -1,0 +1,328 @@
+{% extends "base.html" %}
+
+{% block title %}Streszczenie Mobile{% endblock %}
+{% block header %}Streszczenie — Mobile{% endblock %}
+
+{% block extra_styles %}
+<style>
+  body { background:#030712; color:#e2e8f0; }
+  main { padding:0; }
+  .mobile-wrap {
+    min-height: calc(100vh - 140px);
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+    padding:24px 16px 40px;
+    background:linear-gradient(180deg,#0f172a 0%,#030712 100%);
+  }
+  .panel {
+    background: rgba(15,23,42,0.9);
+    border: 1px solid rgba(148,163,184,0.2);
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: 0 24px 48px rgba(2,6,23,0.6);
+    backdrop-filter: blur(12px);
+  }
+  .panel h2 { margin:0 0 12px; font-size:1.5rem; font-weight:700; }
+  label { font-size:1rem; font-weight:600; margin-bottom:6px; display:block; }
+  input[type="url"], select, textarea {
+    width:100%;
+    border:none;
+    border-radius:18px;
+    padding:16px 18px;
+    font-size:1.05rem;
+    background:rgba(30,41,59,0.85);
+    color:#f8fafc;
+    box-shadow: inset 0 0 0 1px rgba(148,163,184,0.2);
+  }
+  textarea { min-height:180px; resize:vertical; }
+  button {
+    width:100%;
+    border:none;
+    border-radius:18px;
+    padding:18px;
+    font-size:1.1rem;
+    font-weight:700;
+    letter-spacing:0.02em;
+    cursor:pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-primary { background:linear-gradient(135deg,#0ea5e9,#7c3aed); color:#f8fafc; }
+  .btn-secondary { background:rgba(30,41,59,0.7); color:#e2e8f0; }
+  button:active { transform:scale(0.98); box-shadow:0 8px 16px rgba(15,23,42,0.5); }
+  .toggle-row { display:flex; align-items:center; gap:12px; margin-top:10px; }
+  .toggle-row input { width:auto; accent-color:#38bdf8; transform:scale(1.4); }
+  .status { font-size:0.95rem; min-height:1.4em; margin:12px 0; color:#93c5fd; }
+  .result { display:flex; flex-direction:column; gap:14px; }
+  .result textarea { min-height:220px; }
+  audio {
+    width:100%;
+    border-radius:16px;
+    background:#1e293b;
+    margin-top:8px;
+  }
+  .archive { display:flex; flex-direction:column; gap:18px; }
+  .archive-item {
+    border-radius:20px;
+    padding:16px;
+    background:rgba(15,23,42,0.75);
+    box-shadow:0 12px 24px rgba(2,6,23,0.4);
+  }
+  .archive-meta { color:#94a3b8; font-size:0.9rem; }
+  .archive-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; }
+  .archive-actions a,
+  .archive-actions button {
+    flex:1 1 48%;
+    font-size:0.95rem;
+    border-radius:16px;
+    padding:14px;
+  }
+  @media (min-width: 768px) {
+    .mobile-wrap { max-width:640px; margin:0 auto; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mobile-wrap">
+  <div class="panel">
+    <h2>Nowe streszczenie</h2>
+    <form id="mobileForm" novalidate>
+      <label for="mobile-url">Adres artykułu</label>
+      <input id="mobile-url" type="url" placeholder="https://…" required>
+
+      <label for="mobile-prompt">Wybierz prompt</label>
+      <select id="mobile-prompt" required>
+        <option value="">— wybierz —</option>
+        {% for prompt in prompts %}
+          <option value="{{ prompt.id }}">{{ prompt.label }}</option>
+        {% endfor %}
+      </select>
+
+      <div class="toggle-row">
+        <input id="mobile-tts" type="checkbox">
+        <span>Nagraj narrację (TTS)</span>
+      </div>
+
+      <button id="mobileFetch" class="btn-primary" type="submit">Pobierz i opracuj</button>
+      <button id="mobileReuse" class="btn-secondary" type="button" style="margin-top:12px;">Użyj ponownie danych</button>
+    </form>
+    <div id="mobileStatus" class="status"></div>
+  </div>
+
+  <div class="panel result">
+    <h2>Wynik</h2>
+    <input id="mobile-title" type="text" readonly placeholder="Tytuł">
+    <textarea id="mobile-text" readonly placeholder="Tekst"></textarea>
+    <audio id="mobile-audio" controls class="hidden"></audio>
+  </div>
+
+  <div class="panel archive">
+    <h2>Archiwum</h2>
+    <div id="mobileArchive" class="archive-list"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const statusBox = document.getElementById('mobileStatus');
+  const urlInput = document.getElementById('mobile-url');
+  const promptSelect = document.getElementById('mobile-prompt');
+  const titleField = document.getElementById('mobile-title');
+  const textField = document.getElementById('mobile-text');
+  const audioEl = document.getElementById('mobile-audio');
+  const form = document.getElementById('mobileForm');
+  const reuseBtn = document.getElementById('mobileReuse');
+  const ttsCheckbox = document.getElementById('mobile-tts');
+  const archiveEl = document.getElementById('mobileArchive');
+
+  let lastPayload = null;
+
+  const endpoints = {
+    scrap: '{{ url_for("content_tools.scrap_url") }}',
+    apply: '{{ url_for("content_tools.apply_prompt") }}',
+    archive: '{{ url_for("content_tools.archive_list") }}',
+    text: '{{ url_for("content_tools.archive_text", entry_id='ENTRY_ID') }}',
+    audio: '{{ url_for("content_tools.archive_audio", entry_id='ENTRY_ID') }}',
+  };
+
+  function setStatus(message, isError = false) {
+    statusBox.textContent = message || '';
+    statusBox.style.color = isError ? '#fca5a5' : '#93c5fd';
+  }
+
+  function fmt(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  }
+
+  async function fetchJSON(url, options) {
+    const res = await fetch(url, options);
+    return res.json();
+  }
+
+  async function scrap(url) {
+    return fetchJSON(endpoints.scrap, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+  }
+
+  async function applyPrompt(promptId, data, tts) {
+    return fetchJSON(endpoints.apply, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ prompt_id: promptId, data, text_to_speech: tts }),
+    });
+  }
+
+  function buildArchive(entries) {
+    if (!archiveEl) return;
+    archiveEl.innerHTML = '';
+    if (!entries.length) {
+      archiveEl.innerHTML = '<div class="muted">Brak zapisanych wpisów.</div>';
+      return;
+    }
+    entries.forEach(entry => {
+      const card = document.createElement('div');
+      card.className = 'archive-item';
+
+      const name = document.createElement('div');
+      name.innerHTML = `<strong>${entry.title || '(bez tytułu)'}</strong>`;
+      const meta = document.createElement('div');
+      meta.className = 'archive-meta';
+      meta.textContent = [entry.prompt_id, fmt(entry.created_at)].filter(Boolean).join(' • ');
+
+      const actions = document.createElement('div');
+      actions.className = 'archive-actions';
+
+      const openBtn = document.createElement('button');
+      openBtn.className = 'btn-secondary';
+      openBtn.textContent = 'Otwórz';
+      openBtn.onclick = () => loadEntry(entry);
+      actions.appendChild(openBtn);
+
+      if (entry.audio_url) {
+        const playBtn = document.createElement('button');
+        playBtn.className = 'btn-secondary';
+        playBtn.textContent = 'Odtwórz';
+        playBtn.onclick = () => playAudio(entry.audio_url);
+        actions.appendChild(playBtn);
+
+        const dl = document.createElement('a');
+        dl.className = 'btn-secondary';
+        dl.textContent = 'Pobierz audio';
+        dl.href = entry.audio_url;
+        dl.setAttribute('download', '');
+        actions.appendChild(dl);
+      }
+
+      const textLink = document.createElement('a');
+      textLink.className = 'btn-secondary';
+      textLink.textContent = 'Pobierz tekst';
+      textLink.href = entry.text_url || endpoints.text.replace('ENTRY_ID', encodeURIComponent(entry.id));
+      textLink.target = '_blank';
+      actions.appendChild(textLink);
+
+      card.appendChild(name);
+      card.appendChild(meta);
+      card.appendChild(actions);
+      archiveEl.appendChild(card);
+    });
+  }
+
+  async function loadArchive() {
+    const data = await fetchJSON(endpoints.archive);
+    if (!data.ok) throw new Error(data.error || 'Archiwum niedostępne');
+    buildArchive(data.entries || []);
+  }
+
+  async function loadEntry(entry) {
+    const entryUrl = entry.text_url || endpoints.text.replace('ENTRY_ID', encodeURIComponent(entry.id));
+    const data = await fetchJSON(entryUrl, { headers: { 'Accept': 'application/json' } });
+    if (!data.ok) throw new Error(data.error || 'Nie udało się pobrać wpisu.');
+    titleField.value = data.title || '';
+    textField.value = data.text || '';
+    lastPayload = { title: data.title || '', text: data.text || '' };
+    if (data.audio_url) playAudio(data.audio_url);
+    setStatus(`Załadowano wpis ${fmt(data.created_at)}`);
+  }
+
+  function playAudio(url) {
+    if (!audioEl) return;
+    audioEl.src = url;
+    audioEl.classList.remove('hidden');
+    audioEl.play().catch(err => console.warn('Nie można odtworzyć audio.', err));
+  }
+
+  async function handleSubmit(evt, reuse = false) {
+    if (evt) evt.preventDefault();
+    const url = urlInput.value.trim();
+    const promptId = promptSelect.value.trim();
+    const wantsTts = !!ttsCheckbox?.checked;
+
+    if (!url) return setStatus('Podaj adres URL.', true);
+    if (!promptId) return setStatus('Wybierz prompt.', true);
+
+    try {
+      if (audioEl) {
+        audioEl.pause();
+        audioEl.classList.add('hidden');
+        audioEl.removeAttribute('src');
+      }
+
+      if (!reuse) {
+        setStatus('Pobieram artykuł…');
+        const scraped = await scrap(url);
+        if (!scraped.ok) throw new Error(scraped.error || 'Nie udało się pobrać danych.');
+        lastPayload = scraped.payload || {};
+        titleField.value = lastPayload.title || '';
+        textField.value = lastPayload.text || '';
+      }
+
+      if (!lastPayload) throw new Error('Brak danych wejściowych.');
+
+      setStatus('Generuję streszczenie…');
+      const payload = {
+        source_url: url,
+        title: lastPayload.title || '',
+        text: lastPayload.text || '',
+        media: Array.isArray(lastPayload.media) ? lastPayload.media : [],
+        language: 'pl'
+      };
+
+      const result = await applyPrompt(promptId, payload, wantsTts);
+      if (!result.ok) throw new Error(result.error || 'Błąd modelu');
+
+      titleField.value = result.result_title || payload.title || '';
+      textField.value = result.result_text || '';
+      lastPayload = { title: titleField.value, text: textField.value };
+
+      if (result.audio_base64) {
+        playAudio(`data:audio/mp3;base64,${result.audio_base64}`);
+      } else if (result.audio_url) {
+        playAudio(result.audio_url);
+      }
+
+      if (result.audio_error) {
+        setStatus(`Tekst gotowy. Audio: ${result.audio_error}`, true);
+      } else {
+        setStatus('Gotowe. Wynik zapisano w archiwum.');
+      }
+
+      await loadArchive();
+    } catch (error) {
+      console.error(error);
+      setStatus(error.message || 'Wystąpił błąd.', true);
+    }
+  }
+
+  form.addEventListener('submit', evt => handleSubmit(evt, false));
+  reuseBtn.addEventListener('click', evt => handleSubmit(evt, true));
+
+  loadArchive().catch(err => console.warn(err));
+</script>
+{% endblock %}

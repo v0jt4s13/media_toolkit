@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Media Toolkit{% endblock %}</title>
+  <style>
+    :root { color-scheme: dark light; }
+    body {
+      font-family: "Inter", system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      background: #020617;
+      color: #e2e8f0;
+    }
+    header {
+      background: linear-gradient(135deg, #0b3d91 0%, #111827 85%);
+      color: #f8fafc;
+      padding: 1.35rem 1.8rem;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      cursor:pointer;
+      position:relative;
+      z-index:20;
+    }
+    header h1 { margin:0; font-size:1.6rem; letter-spacing:0.01em; }
+    .nav-toggle-indicator {
+      font-size:1.6rem;
+      transition: transform 0.2s ease;
+    }
+    nav {
+      display:none;
+      flex-direction:column;
+      gap:1.4rem;
+      padding:1.6rem;
+      background:rgba(10,24,52,0.96);
+      position:absolute;
+      top:100%; left:0; right:0;
+      box-shadow:0 28px 48px rgba(2,6,23,0.5);
+      border-bottom-left-radius:28px;
+      border-bottom-right-radius:28px;
+      backdrop-filter:blur(14px);
+      z-index:15;
+    }
+    nav.open {
+      display:flex;
+      position:relative;
+    }
+    nav a {
+      display:block;
+      color:#f8fafc;
+      text-decoration:none;
+      font-weight:600;
+      font-size:1.15rem;
+      padding:1rem 1.2rem;
+      border-radius:20px;
+      background:rgba(30,41,59,0.65);
+      box-shadow: inset 0 0 0 1px rgba(148,163,184,0.25);
+      transition: transform 0.18s ease, background 0.18s ease;
+    }
+    nav a:active { transform:scale(0.98); }
+    nav a:hover { background:rgba(59,130,246,0.32); transform:translateY(-1px); }
+    main {
+      padding: clamp(1.4rem, 2vw, 2rem);
+      min-height:calc(100vh - 160px);
+      background: linear-gradient(180deg, rgba(15,23,42,0.65) 0%, rgba(2,6,23,0.92) 100%);
+    }
+    footer {
+      padding:1rem 2rem;
+      background:#0b3d91;
+      color:#f8fafc;
+      text-align:center;
+    }
+    @media (min-width: 768px) {
+      header { cursor:default; }
+      .nav-toggle-indicator { display:none; }
+      nav {
+        position:static;
+        display:flex !important;
+        flex-direction:row;
+        background:#0f172a;
+        border-radius:0;
+        box-shadow:none;
+        gap:1.2rem;
+        padding:0.95rem 2rem;
+      }
+      nav a {
+        padding:0.75rem 1.15rem;
+        border-radius:14px;
+        font-size:1rem;
+      }
+    }
+  </style>
+  {% block extra_styles %}{% endblock %}
+  {% block extra_js %}{% endblock %}
+</head>
+<body>
+  <header>
+    <h1>{% block header %}Media Toolkit{% endblock %}</h1>
+    <span class="nav-toggle-indicator">☰</span>
+  </header>
+  <nav>
+    <p><a href="{{ url_for('content_tools.summary_mobile') }}">Streszczenie Mobile</a></p>
+    <a href="{{ url_for('audiototext.upload_form') }}">Transkrypcje</a>
+    <a href="{{ url_for('audiototext.results_browser') }}">Wyniki</a>
+    <a href="{{ url_for('content_tools.summary_form') }}">Streszczenie</a>
+    <a href="{{ url_for('transcripts_view') }}">Transkrypcje — podgląd</a>
+    <a href="{{ url_for('logout') }}">Wyloguj</a>
+  </nav>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+  {% block scripts %}{% endblock %}
+  <footer>
+    Media Toolkit &copy;
+  </footer>
+  <script>
+    (function(){
+      const header = document.querySelector('header');
+      const nav = document.querySelector('nav');
+      const indicator = document.querySelector('.nav-toggle-indicator');
+      if (!header || !nav) return;
+
+      const isDesktop = () => window.matchMedia('(min-width: 768px)').matches;
+      const toggleNav = (force) => {
+        const desired = typeof force === 'boolean' ? force : !nav.classList.contains('open');
+        if (isDesktop()) {
+          nav.classList.add('open');
+          if (indicator) indicator.textContent = '☰';
+          return;
+        }
+        nav.classList.toggle('open', desired);
+        if (indicator) indicator.textContent = desired ? '✕' : '☰';
+      };
+
+      header.addEventListener('click', (evt) => {
+        if (evt.target.closest('a')) return;
+        if (isDesktop()) return;
+        evt.preventDefault();
+        toggleNav();
+      });
+
+      nav.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => toggleNav(false));
+      });
+
+      document.addEventListener('click', (evt) => {
+        if (isDesktop()) return;
+        if (!nav.contains(evt.target) && !header.contains(evt.target)) toggleNav(false);
+      });
+
+      window.addEventListener('resize', () => toggleNav(false));
+      toggleNav(false);
+    })();
+  </script>
+</body>
+</html>

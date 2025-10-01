@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}Wyniki transkrypcji{% endblock %}
+{% block header %}Wyniki transkrypcji{% endblock %}
+
+{% block content %}
+<style>
+  .layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
+  .transcription-list, .transcription-card { padding: 24px; border: 1px solid #d1d5db; border-radius: 16px; background: white; }
+  .transcription-list { max-height: 520px; overflow: auto; }
+  .muted { color:#4b5563; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .file { padding:10px; border:1px solid #e5e7eb; border-radius:10px; margin-bottom:8px; cursor:pointer; background:#111827; color:#f9fafb; }
+  .file:hover { background:#0b3d91; }
+  .file.active { background:#2563eb; border-color:#bfdbfe; }
+  .row { margin-bottom: 12px; }
+  .btn { font-size:.9rem; padding:8px 12px; border:1px solid #d1d5db; background:#f9fafb; border-radius:10px; cursor:pointer; }
+  .btn:hover { background:#e5e7eb; }
+  .transcript { white-space: pre-wrap; padding: 12px; background: #111827; border: 1px solid #1f2937; border-radius: 10px; min-height: 120px; color:#f3f4f6; }
+  .alt-list { list-style: none; padding-left: 0; }
+  .alt-list li { padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; }
+  .sec { margin-top: 18px; }
+  .dia-seg { padding:8px 10px; border:1px solid #e5e7eb; border-radius:10px; margin-bottom:10px; background:#111827; color:#f3f4f6; }
+  .split { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+  @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } .split { grid-template-columns: 1fr; } }
+  .ts-row { margin: 6px 0; padding: 6px 10px; border-left: 3px solid #93c5fd; background: #1f2937; border-radius: 6px; }
+  .ts-time { font-weight: 600; margin-right: 8px; }
+  .ts-speaker { font-weight: 600; margin-right: 8px; }
+</style>
+
+<h1>Wyniki transkrypcji</h1>
+<p class="muted">Lista plików z katalogu <span class="mono">results/</span> wraz z podglądem szczegółów.</p>
+
+<div class="layout">
+  <div class="transcription-list">
+    <div class="row">
+      <input id="search" type="text" placeholder="Szukaj po nazwie / job_id / języku…" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:10px;">
+    </div>
+    <div id="files" class="list"></div>
+  </div>
+
+  <div class="transcription-card">
+    <div id="meta" class="row muted">(wybierz plik po lewej)</div>
+
+    <div class="actions" style="display:flex; gap:8px; flex-wrap: wrap; margin-bottom: 12px;">
+      <button id="btnCopy" class="btn" disabled>Skopiuj transkrypcję</button>
+      <button id="btnToggleAlts" class="btn" disabled>Pokaż alternatywy</button>
+      <button id="btnToggleDia" class="btn" disabled>Pokaż mówców</button>
+      <button id="btnToggleTimes" class="btn" disabled>Pokaż czasy</button>
+      <button id="btnSrt" class="btn" disabled>Pobierz SRT</button>
+      <a id="btnDownloadJson" class="btn" href="#" download style="pointer-events:none; opacity:0.6;">Pobierz JSON</a>
+    </div>
+
+    <div class="sec">
+      <h3>Transkrypcja</h3>
+      <div id="transcript" class="transcript mono"></div>
+    </div>
+
+    <div id="altsSec" class="sec" style="display:none;">
+      <h3>Alternatywy</h3>
+      <ul id="alts" class="alt-list"></ul>
+    </div>
+
+    <div id="diaSec" class="sec" style="display:none;">
+      <div class="split">
+        <div>
+          <h3>Podział na mówców</h3>
+          <div class="muted" style="font-size:.9rem;">Ustaw liczbę mówców przy transkrypcji, aby zasilić te dane.</div>
+          <div id="diaBox"></div>
+        </div>
+        <div>
+          <h3>Filtr mówców</h3>
+          <div id="speakers"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const filesEl = document.getElementById('files');
+  const searchEl = document.getElementById('search');
+  const metaEl = document.getElementById('meta');
+  const transcriptEl = document.getElementById('transcript');
+  const altsSec = document.getElementById('altsSec');
+  const altsEl = document.getElementById('alts');
+  const diaSec = document.getElementById('diaSec');
+  const diaBox = document.getElementById('diaBox');
+  const speakersEl = document.getElementById('speakers');
+
+  const btnCopy = document.getElementById('btnCopy');
+  const btnToggleAlts = document.getElementById('btnToggleAlts');
+  const btnToggleDia = document.getElementById('btnToggleDia');
+  const btnToggleTimes = document.getElementById('btnToggleTimes');
+  const btnSrt = document.getElementById('btnSrt');
+  const btnDownloadJson = document.getElementById('btnDownloadJson');
+
+  let list = [];
+  let selected = null;
+  let selectedFilename = null;
+  let showTimes = false;
+  let cachedWords = [];
+  let cachedPlain = '';
+
+  function fmtBytes(b) {
+    if (!b && b !== 0) return '';
+    const units = ['B','KB','MB','GB']; let i=0; let n=b;
+    while(n>=1024 && i<units.length-1){ n/=1024; i++; }
+    return n.toFixed(n<10&&i>0?1:0)+' '+units[i];
+  }
+
+  function fmtTs(sec) {
+    if(!sec && sec !== 0) return '';
+    const date=new Date(sec*1000);
+    return date.toLocaleString();
+  }
+
+  function fmtTime(sec) {
+    if (sec == null || isNaN(sec)) return '';
+    const s = Math.floor(sec % 60);
+    const m = Math.floor((sec / 60) % 60);
+    const h = Math.floor(sec / 3600);
+    const ms = Math.round((sec - Math.floor(sec)) * 1000);
+    const mm = String(m).padStart(2,'0');
+    const ss = String(s).padStart(2,'0');
+    const mss = String(ms).padStart(3,'0');
+    return (h > 0 ? `${h}:${mm}:${ss},${mss}` : `00:${mm}:${ss},${mss}`);
+  }
+
+  function renderList() {
+    filesEl.innerHTML = '';
+    const q = (searchEl.value||'').toLowerCase();
+    list.filter(item => {
+      const hay = [item.filename, item.job_id, item.language_code].join(' ').toLowerCase();
+      return hay.includes(q);
+    }).forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'file' + (item.filename === selectedFilename ? ' active' : '');
+      el.dataset.filename = item.filename;
+      el.innerHTML = `
+        <div class="mono">${item.filename}</div>
+        <div class="muted" style="font-size:.85rem;">
+          ${item.language_code || '—'} · ${fmtBytes(item.size_bytes)} · ${fmtTs(item.mtime)}
+        </div>`;
+      el.addEventListener('click', () => selectFile(item.filename));
+      filesEl.appendChild(el);
+    });
+  }
+
+  async function fetchList() {
+    const res = await fetch('/audiototext/results/list');
+    const data = await res.json();
+    if (!data.ok) return;
+    list = data.items || [];
+    renderList();
+  }
+
+  async function selectFile(filename) {
+    selectedFilename = filename;
+    const res = await fetch(`/audiototext/results/${filename}?raw=1`);
+    const data = await res.json();
+    const meta = list.find(item => item.filename === filename) || {};
+
+    metaEl.innerHTML = `
+      <div><strong>Plik:</strong> <span class="mono">${filename}</span></div>
+      <div>${fmtBytes(meta.size_bytes)} · ${fmtTs(meta.mtime)} · język: ${meta.language_code || '—'}</div>
+      <div>Job ID: ${meta.job_id || '—'}</div>
+      <div>Źródło: ${(data.source_url || data.source_file || '—')}</div>`;
+
+    cachedPlain = data.result?.transcript || '';
+    cachedWords = data.result?.diarization_words || [];
+    transcriptEl.textContent = cachedPlain;
+
+    btnCopy.disabled = !cachedPlain;
+    btnToggleAlts.disabled = !(data.result?.alternatives || []).length;
+    btnToggleDia.disabled = !cachedWords.length;
+    btnToggleTimes.disabled = !cachedWords.length;
+    btnSrt.disabled = !cachedWords.length;
+    btnDownloadJson.href = `/audiototext/results/${filename}`;
+    btnDownloadJson.style.pointerEvents = 'auto';
+    btnDownloadJson.style.opacity = 1;
+
+    altsSec.style.display = 'none';
+    diaSec.style.display = 'none';
+    showTimes = false;
+
+    if (data.result?.alternatives?.length) {
+      altsEl.innerHTML = '';
+      data.result.alternatives.forEach((alt, idx) => {
+        const item = document.createElement('li');
+        item.innerHTML = `<strong>Alternatywa ${idx + 1}</strong><div>${alt.transcript}</div><div>Confidence: ${(alt.confidence || 0).toFixed(3)}</div>`;
+        altsEl.appendChild(item);
+      });
+    }
+
+    renderDiaSegments();
+  }
+
+  function renderDiaSegments(filterSpeaker = null) {
+    diaBox.innerHTML = '';
+    const words = filterSpeaker ? cachedWords.filter(w => w.speaker_tag === filterSpeaker) : cachedWords;
+    if (!words.length) return;
+
+    const segments = [];
+    let cur = null;
+    words.forEach(word => {
+      const tag = word.speaker_tag ?? 0;
+      const start = word.start_time ?? null;
+      const end = word.end_time ?? null;
+      const text = (word.word || '').trim();
+
+      if (!cur) {
+        cur = { speaker: tag, start, end, words: [text] };
+      } else if (tag === cur.speaker && start != null && cur.end != null && start <= cur.end + 0.6) {
+        cur.end = end != null ? end : cur.end;
+        cur.words.push(text);
+      } else {
+        segments.push(cur);
+        cur = { speaker: tag, start, end, words: [text] };
+      }
+    });
+    if (cur) segments.push(cur);
+
+    segments.forEach(seg => {
+      const row = document.createElement('div');
+      row.className = 'dia-seg';
+      row.innerHTML = `
+        <div><strong>Mówca ${seg.speaker}</strong> · ${fmtTime(seg.start)} – ${fmtTime(seg.end)}</div>
+        <div class="mono">${seg.words.join(' ')}</div>`;
+      diaBox.appendChild(row);
+    });
+  }
+
+  btnCopy.addEventListener('click', () => {
+    if (!cachedPlain) return;
+    navigator.clipboard.writeText(cachedPlain).then(() => {
+      btnCopy.textContent = 'Skopiowano!';
+      setTimeout(() => (btnCopy.textContent = 'Skopiuj transkrypcję'), 1500);
+    });
+  });
+
+  btnToggleAlts.addEventListener('click', () => {
+    altsSec.style.display = altsSec.style.display === 'none' ? 'block' : 'none';
+  });
+
+  btnToggleDia.addEventListener('click', () => {
+    diaSec.style.display = diaSec.style.display === 'none' ? 'block' : 'none';
+    if (diaSec.style.display === 'block') {
+      const uniqueSpeakers = Array.from(new Set((cachedWords || []).map(w => w.speaker_tag))).filter(Boolean);
+      speakersEl.innerHTML = '';
+      const allBtn = document.createElement('button');
+      allBtn.className = 'btn';
+      allBtn.textContent = 'Wszyscy';
+      allBtn.addEventListener('click', () => renderDiaSegments());
+      speakersEl.appendChild(allBtn);
+      uniqueSpeakers.forEach(tag => {
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.textContent = `Mówca ${tag}`;
+        btn.addEventListener('click', () => renderDiaSegments(tag));
+        speakersEl.appendChild(btn);
+      });
+    }
+  });
+
+  btnToggleTimes.addEventListener('click', () => {
+    showTimes = !showTimes;
+    transcriptEl.textContent = showTimes
+      ? (cachedWords || []).map(w => `[${fmtTime(w.start_time)}] ${w.word}`).join(' ')
+      : cachedPlain;
+  });
+
+  btnSrt.addEventListener('click', () => {
+    if (!cachedWords.length) return;
+    let srt = '';
+    let idx = 1;
+    cachedWords.forEach(word => {
+      const start = fmtTime(word.start_time || 0).replace('.', ',');
+      const end = fmtTime(word.end_time || 0).replace('.', ',');
+      srt += `${idx++}\n${start} --> ${end}\n${word.word}\n\n`;
+    });
+    const blob = new Blob([srt], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = (selectedFilename || 'transcription') + '.srt';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  });
+
+  searchEl.addEventListener('input', renderList);
+  fetchList();
+</script>
+{% endblock %}

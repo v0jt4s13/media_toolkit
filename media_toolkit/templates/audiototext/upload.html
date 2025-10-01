@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Audio → Transkrypcja{% endblock %}
+{% block header %}Audio → Transkrypcja{% endblock %}
+
+{% block extra_js %}
+  <script>
+    async function parseJsonSafe(res) {
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
+      const body = await res.text();
+      if (ct.includes('application/json')) {
+        try { return JSON.parse(body); } catch(e){}
+      }
+      const head = body.replace(/\s+/g,' ').slice(0, 200);
+      throw new Error(`HTTP ${res.status} ${res.statusText} — ${head}`);
+    }
+  </script>
+{% endblock %}
+
+{% block content %}
+<style>
+  .transcription-card { padding: 24px; border: 1px solid #d1d5db; border-radius: 16px; background: white; }
+  .row { margin-bottom: 16px; }
+  label { display:block; font-weight:600; margin-bottom:6px; }
+  input[type="file"], select, input[type="text"], input[type="url"] { width:100%; padding:10px; border:1px solid #ccc; border-radius:8px; }
+  button { padding:10px 16px; border:0; border-radius:10px; cursor:pointer; }
+  .primary { background:#0b3d91; color:white; }
+  .muted { color:#4b5563; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .status { padding:12px; border-radius:10px; background:#111827; color:#d1d5db; }
+  .hidden { display:none; }
+  a.button { text-decoration:none; display:inline-block; }
+  .transcript { white-space: pre-wrap; padding: 12px; background: #111827; color:#f3f4f6; border: 1px solid #e5e7eb; border-radius: 10px; min-height: 80px; }
+  .mode-switch { display:flex; gap:0; margin-bottom:16px; }
+  .mode-btn { padding:8px 12px; border:1px solid #d1d5db; background:#f9fafb; cursor:pointer; border-radius:8px 8px 0 0; }
+  .mode-btn.active { background: #0b3d91; color:white; border-color:#0b3d91; }
+  #uploadForm { border: 2px solid #0b3d91; padding: 16px; border-radius: 0 16px 16px 16px; background:#f9fafb; }
+  .inline { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .xs { font-size: .85rem; }
+  div#result { margin: 0.9em; width: 90%; text-align: right; }
+  a#downloadLink { padding: 8px; }
+</style>
+
+<div class="transcription-card">
+  <h1>Transkrypcja audio / YouTube</h1>
+  <p class="muted">
+    Plik lub audio z YouTube zostanie przetworzone w tle.<br>
+    <a href="/audiototext/results/browser" target="_blank">Wyniki transkrypcji</a>
+    ·
+    <a href="/audiototext/selftest" target="_blank" class="xs">GCS selftest</a>
+    ·
+    <a href="/audiototext/gcstest" target="_blank" class="xs">GCS diagnostyka</a>
+  </p>
+
+  <div class="mode-switch">
+    <button type="button" class="mode-btn active" data-mode="file">Wgraj plik</button>
+    <button type="button" class="mode-btn" data-mode="youtube">YouTube URL</button>
+  </div>
+
+  <form id="uploadForm">
+    <div id="row_file" class="row">
+      <label for="audio_file">Plik audio</label>
+      <input type="file" id="audio_file" name="audio_file" accept="audio/*,video/mp4,video/x-m4v,video/*" required>
+      <div class="muted xs" style="margin-top:6px;">Obsługiwane m.in.: .mp3, .m4a, .wav, .mp4 (audio)</div>
+    </div>
+
+    <div id="row_youtube" class="row hidden">
+      <label for="youtube_url">Adres URL filmu YouTube</label>
+      <input type="url" id="youtube_url" name="youtube_url" placeholder="https://youtu.be/..." pattern="https?://.*">
+      <div class="muted xs" style="margin-top:6px;">Audio zostanie pobrane przez yt-dlp i przetworzone w tle.</div>
+    </div>
+
+    <div class="row">
+      <label for="language_code">Język rozpoznawania</label>
+      <select id="language_code" name="language_code">
+        <option value="pl-PL" selected>pl-PL (polski)</option>
+        <option value="en-US">en-US (angielski USA)</option>
+        <option value="uk-UA">uk-UA (ukraiński)</option>
+      </select>
+    </div>
+
+    <div class="row inline">
+      <div style="flex:1; min-width:220px;">
+        <label for="diarization_speaker_count">Liczba mówców (opcjonalnie)</label>
+        <input type="text" id="diarization_speaker_count" name="diarization_speaker_count" placeholder="np. 2">
+      </div>
+      <label class="inline" style="gap:6px; margin-top: 22px;">
+        <input type="checkbox" id="enable_word_time_offsets" name="enable_word_time_offsets"> Zwróć czasy słów
+      </label>
+    </div>
+
+    <button type="submit" id="submitBtn" class="primary">Wyślij</button>
+  </form>
+
+  <div id="progress" class="row hidden">
+    <h2>Status</h2>
+    <div class="status mono" id="statusBox">Oczekiwanie na rozpoczęcie…</div>
+    <div id="result" class="row hidden">
+      <a id="downloadLink" class="button primary" href="#" download>Pobierz JSON</a>
+    </div>
+  </div>
+
+  <div id="transcriptWrap" class="row hidden">
+    <h2>Transkrypcja</h2>
+    <div id="transcriptBox" class="transcript mono">(oczekiwanie na wynik…)</div>
+  </div>
+</div>
+
+<script>
+  const modeBtns = document.querySelectorAll('.mode-btn');
+  const rowFile = document.getElementById('row_file');
+  const rowYoutube = document.getElementById('row_youtube');
+  const form = document.getElementById('uploadForm');
+  const progress = document.getElementById('progress');
+  const statusBox = document.getElementById('statusBox');
+  const transcriptWrap = document.getElementById('transcriptWrap');
+  const transcriptBox = document.getElementById('transcriptBox');
+  const downloadLink = document.getElementById('downloadLink');
+  const resultWrap = document.getElementById('result');
+
+  let mode = 'file';
+
+  modeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      modeBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      mode = btn.dataset.mode;
+      if (mode === 'file') {
+        rowFile.classList.remove('hidden');
+        rowYoutube.classList.add('hidden');
+      } else {
+        rowFile.classList.add('hidden');
+        rowYoutube.classList.remove('hidden');
+      }
+    });
+  });
+
+  async function pollStatus(url) {
+    try {
+      const res = await fetch(url);
+      const data = await parseJsonSafe(res);
+      if (!data.ok) {
+        statusBox.textContent = data.error || 'Błąd';
+        return;
+      }
+      statusBox.textContent = `Status: ${data.status}`;
+      if (data.status === 'done') {
+        if (data.result_download) {
+          downloadLink.href = data.result_download;
+          downloadLink.style.pointerEvents = 'auto';
+          downloadLink.style.opacity = 1;
+          resultWrap.classList.remove('hidden');
+          const jsonRes = await fetch(data.result_download + '?raw=1');
+          const payload = await jsonRes.json();
+          transcriptBox.textContent = payload.result?.transcript || '(brak danych)';
+          transcriptWrap.classList.remove('hidden');
+        }
+      } else if (data.status === 'error') {
+        statusBox.textContent = `Błąd: ${data.error || 'unknown'}`;
+      } else {
+        setTimeout(() => pollStatus(url), 2500);
+      }
+    } catch (err) {
+      statusBox.textContent = `Błąd pobierania statusu: ${err.message}`;
+    }
+  }
+
+  form.addEventListener('submit', async (evt) => {
+    evt.preventDefault();
+    progress.classList.remove('hidden');
+    statusBox.textContent = 'Wysyłanie…';
+
+    try {
+      let response;
+      if (mode === 'file') {
+        const fd = new FormData(form);
+        response = await fetch('/audiototext/upload', {
+          method: 'POST',
+          body: fd,
+        });
+      } else {
+        const payload = {
+          youtube_url: document.getElementById('youtube_url').value,
+          language_code: document.getElementById('language_code').value,
+          diarization_speaker_count: document.getElementById('diarization_speaker_count').value,
+          enable_word_time_offsets: document.getElementById('enable_word_time_offsets').checked,
+        };
+        response = await fetch('/audiototext/youtube/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      const data = await parseJsonSafe(response);
+      if (!data.ok) {
+        statusBox.textContent = data.error || 'Błąd';
+        return;
+      }
+
+      statusBox.textContent = 'Zadanie przyjęte. Sprawdzam status…';
+      pollStatus(data.status_url);
+    } catch (err) {
+      statusBox.textContent = `Błąd wysyłki: ${err.message}`;
+    }
+  });
+</script>
+{% endblock %}

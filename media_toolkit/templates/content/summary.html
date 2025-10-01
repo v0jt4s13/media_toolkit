@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+
+{% block title %}URL → Streszczenie{% endblock %}
+{% block header %}URL → Streszczenie{% endblock %}
+
+{% block content %}
+<style>
+  .tool-card { max-width: 900px; margin: 0 auto; background: #ffffff; border: 1px solid #d1d5db; border-radius: 16px; padding: 24px; box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08); }
+  .archive-card { max-width: 900px; margin: 24px auto 0; background: #ffffff; border: 1px solid #d1d5db; border-radius: 16px; padding: 20px; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06); }
+  .tool-card h2 { margin-top: 0; font-size: 1.25rem; color: #0f172a; }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 220px 160px 170px 170px;
+    column-gap: 28px;
+    row-gap: 22px;
+    align-items: end;
+  }
+  label { font-weight:600; margin-bottom:6px; display:block; color:#1f2937; }
+  input[type="url"], select, textarea {
+    width:100%;
+    padding:16px;
+    border:1px solid #cbd5f5;
+    border-radius:12px;
+    background:#f8fafc;
+    color:#0f172a;
+    font-size:1.05rem;
+  }
+  textarea { min-height: 220px; resize: vertical; }
+  button { padding:16px 20px; border:none; border-radius:14px; cursor:pointer; font-weight:600; font-size:1.05rem; }
+  .btn-primary { background:#0b3d91; color:#fff; }
+  .btn-secondary { background:#e2e8f0; color:#1f2937; }
+  .status { margin-top:16px; font-size:0.95rem; color:#334155; }
+  .result-grid { display:grid; grid-template-columns: 1fr; gap:16px; margin-top:24px; }
+  .muted { color:#64748b; font-size:0.9rem; }
+  .hidden { display:none; }
+  .checkbox-inline { display:flex; align-items:center; gap:8px; margin-top:8px; }
+  .archive-list { display:flex; flex-direction:column; gap:12px; margin-top:16px; }
+  .archive-item { border:1px solid #e2e8f0; border-radius:12px; padding:12px 14px; background:#f8fafc; display:flex; flex-direction:column; gap:6px; }
+  .archive-header { display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .archive-actions { display:flex; gap:10px; flex-wrap:wrap; }
+  .btn-small { padding:8px 12px; font-size:0.85rem; }
+  .archive-link { font-size:0.85rem; color:#0b3d91; text-decoration:none; }
+  .archive-link:hover { text-decoration:underline; }
+</style>
+
+<div class="tool-card">
+  <h2>Pobierz artykuł i zastosuj prompt</h2>
+  <p class="muted">Podaj adres URL artykułu, wybierz prompt i pozwól modelowi przygotować streszczenie lub zajawkę.</p>
+
+  <form id="summaryForm" novalidate>
+    <div class="form-grid">
+      <div>
+        <label for="source-url">Adres URL</label>
+        <input id="source-url" type="url" name="url" placeholder="https://www.londynek.net/..." required>
+      </div>
+      <div>
+        <label for="prompt-id">Prompt</label>
+        <select id="prompt-id" name="prompt_id" required>
+          <option value="">— wybierz prompt —</option>
+          {% for prompt in prompts %}
+            <option value="{{ prompt.id }}">{{ prompt.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="tts-enabled">Audio (TTS)</label>
+        <label class="checkbox-inline">
+          <input id="tts-enabled" type="checkbox">
+          <span>Wygeneruj narrację</span>
+        </label>
+      </div>
+      <div>
+        <button id="fetchBtn" class="btn-primary" type="submit">Pobierz i przetwórz</button>
+      </div>
+      <div>
+        <button id="applyPromptBtn" class="btn-secondary" type="button">Zastosuj prompt ponownie</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="status" id="status"></div>
+
+  <div class="result-grid">
+    <div>
+      <label for="result-title">Tytuł</label>
+      <input id="result-title" type="text" readonly>
+    </div>
+    <div>
+      <label for="result-text">Tekst</label>
+      <textarea id="result-text" readonly placeholder="Tutaj pojawi się wynik"></textarea>
+    </div>
+    <div>
+      <label for="result-audio">Audio</label>
+      <audio id="result-audio" controls class="hidden"></audio>
+    </div>
+  </div>
+</div>
+
+<div class="archive-card">
+  <h3>Archiwum</h3>
+  <p class="muted">Twoje zapisane transkrypcje i pliki audio.</p>
+  <div id="archiveList" class="archive-list"></div>
+</div>
+
+<script>
+  const statusBox = document.getElementById('status');
+  const urlInput = document.getElementById('source-url');
+  const promptSelect = document.getElementById('prompt-id');
+  const titleField = document.getElementById('result-title');
+  const textField = document.getElementById('result-text');
+  const audioEl = document.getElementById('result-audio');
+  const form = document.getElementById('summaryForm');
+  const applyPromptBtn = document.getElementById('applyPromptBtn');
+  const ttsCheckbox = document.getElementById('tts-enabled');
+  const archiveListEl = document.getElementById('archiveList');
+  const archiveTextTemplate = "{{ url_for('content_tools.archive_text', entry_id='ENTRY_ID') }}";
+
+  let lastPayload = null;
+
+  function formatDate(value) {
+    if (!value) return '';
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toLocaleString();
+    }
+    return value;
+  }
+
+  function setStatus(message, isError = false) {
+    statusBox.textContent = message || '';
+    statusBox.style.color = isError ? '#dc2626' : '#334155';
+  }
+
+  async function scrapUrl(url) {
+    const res = await fetch('{{ url_for("content_tools.scrap_url") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    return res.json();
+  }
+
+  async function applyPrompt(promptId, data, textToSpeech) {
+    const res = await fetch('{{ url_for("content_tools.apply_prompt") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ prompt_id: promptId, data, text_to_speech: textToSpeech })
+    });
+    return res.json();
+  }
+
+  async function loadArchive() {
+    if (!archiveListEl) return;
+    try {
+      const res = await fetch('{{ url_for("content_tools.archive_list") }}', {
+        headers: { 'Accept': 'application/json' }
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Archiwum niedostępne');
+      renderArchive(data.entries || []);
+    } catch (error) {
+      console.error(error);
+      archiveListEl.innerHTML = '<div class="muted">Nie udało się pobrać archiwum.</div>';
+    }
+  }
+
+  function renderArchive(entries) {
+    if (!archiveListEl) return;
+    if (!entries.length) {
+      archiveListEl.innerHTML = '<div class="muted">Brak zapisanych danych.</div>';
+      return;
+    }
+    archiveListEl.innerHTML = '';
+    entries.forEach((entry) => {
+      archiveListEl.appendChild(buildArchiveItem(entry));
+    });
+  }
+
+  function buildArchiveItem(entry) {
+    const item = document.createElement('div');
+    item.className = 'archive-item';
+
+    const header = document.createElement('div');
+    header.className = 'archive-header';
+
+    const titleEl = document.createElement('div');
+    titleEl.innerHTML = `<strong>${entry.title || '(bez tytułu)'}</strong>`;
+
+    const metaEl = document.createElement('div');
+    metaEl.className = 'muted';
+    const metaParts = [];
+    if (entry.prompt_id) metaParts.push(entry.prompt_id);
+    if (entry.created_at) metaParts.push(formatDate(entry.created_at));
+    metaEl.textContent = metaParts.join(' • ');
+
+    header.appendChild(titleEl);
+    header.appendChild(metaEl);
+
+    const actions = document.createElement('div');
+    actions.className = 'archive-actions';
+
+    const viewBtn = document.createElement('button');
+    viewBtn.textContent = 'Pokaż';
+    viewBtn.className = 'btn-secondary btn-small';
+    viewBtn.addEventListener('click', () => loadArchiveEntry(entry));
+    actions.appendChild(viewBtn);
+
+    if (entry.audio_url) {
+      const playBtn = document.createElement('button');
+      playBtn.textContent = 'Odtwórz';
+      playBtn.className = 'btn-secondary btn-small';
+      playBtn.addEventListener('click', () => {
+        if (!audioEl) return;
+        audioEl.src = entry.audio_url;
+        audioEl.classList.remove('hidden');
+        audioEl.play().catch((err) => console.warn('Nie można odtworzyć audio.', err));
+      });
+      actions.appendChild(playBtn);
+
+      const downloadLink = document.createElement('a');
+      downloadLink.href = entry.audio_url;
+      downloadLink.textContent = 'Pobierz audio';
+      downloadLink.className = 'archive-link';
+      downloadLink.setAttribute('download', '');
+      actions.appendChild(downloadLink);
+    }
+
+    const textLink = document.createElement('a');
+    textLink.href = entry.text_url || archiveTextTemplate.replace('ENTRY_ID', encodeURIComponent(entry.id));
+    textLink.textContent = 'Pobierz tekst';
+    textLink.className = 'archive-link';
+    textLink.target = '_blank';
+    actions.appendChild(textLink);
+
+    item.appendChild(header);
+    item.appendChild(actions);
+    return item;
+  }
+
+  async function loadArchiveEntry(entry) {
+    try {
+      const textUrl = entry.text_url || archiveTextTemplate.replace('ENTRY_ID', encodeURIComponent(entry.id))
+      const res = await fetch(textUrl, {
+        headers: { 'Accept': 'application/json' }
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Nie udało się pobrać wpisu.');
+      titleField.value = data.title || '';
+      textField.value = data.text || '';
+      lastPayload = { title: data.title || '', text: data.text || '' };
+      if (data.audio_url && audioEl) {
+        audioEl.src = data.audio_url;
+        audioEl.classList.remove('hidden');
+      }
+      setStatus(`Załadowano wpis ${formatDate(data.created_at)}`);
+    } catch (error) {
+      console.error(error);
+      setStatus(error.message || 'Nie udało się wczytać wpisu.', true);
+    }
+  }
+
+  async function handleProcessing(evt, { reusePayload = false } = {}) {
+    if (evt) evt.preventDefault();
+    const url = urlInput.value.trim();
+    const promptId = promptSelect.value.trim();
+    const wantsTts = !!ttsCheckbox?.checked;
+
+    if (!url) { setStatus('Podaj adres URL.', true); return; }
+    if (!promptId) { setStatus('Wybierz prompt.', true); return; }
+
+    try {
+      if (audioEl) {
+        audioEl.pause();
+        audioEl.classList.add('hidden');
+        audioEl.removeAttribute('src');
+      }
+
+      if (!reusePayload) {
+        setStatus('Pobieram zawartość strony…');
+        const scrapResult = await scrapUrl(url);
+        if (!scrapResult.ok) { throw new Error(scrapResult.error || 'Nie udało się pobrać artykułu.'); }
+        lastPayload = scrapResult.payload || {};
+        titleField.value = lastPayload.title || '';
+        textField.value = lastPayload.text || '';
+      }
+
+      if (!lastPayload) { setStatus('Brak danych do przetworzenia. Najpierw pobierz artykuł.', true); return; }
+
+      setStatus('Wywołuję model…');
+      const llmPayload = {
+        source_url: url,
+        title: lastPayload.title || '',
+        text: lastPayload.text || '',
+        media: Array.isArray(lastPayload.media) ? lastPayload.media : [],
+        language: 'pl'
+      };
+
+      const promptResult = await applyPrompt(promptId, llmPayload, wantsTts);
+      if (!promptResult.ok) { throw new Error(promptResult.error || 'Błąd modelu'); }
+
+      if (promptResult.result_title) {
+        titleField.value = promptResult.result_title;
+      }
+      if (promptResult.result_text) {
+        textField.value = promptResult.result_text;
+      }
+      lastPayload = { title: titleField.value, text: textField.value };
+
+      if (promptResult.audio_base64 && audioEl) {
+        audioEl.src = `data:audio/mp3;base64,${promptResult.audio_base64}`;
+        audioEl.classList.remove('hidden');
+        try {
+          await audioEl.play();
+        } catch (error) {
+          console.warn('Autoodtwarzanie audio nie powiodło się.', error);
+        }
+      }
+      if (promptResult.audio_url && audioEl) {
+        audioEl.dataset.archiveUrl = promptResult.audio_url;
+      }
+
+      if (promptResult.audio_error) {
+        setStatus(`${statusBox.textContent || 'Gotowe.'} Audio: ${promptResult.audio_error}`, true);
+      } else {
+        setStatus('Gotowe. Wynik możesz skopiować lub zapisać.');
+      }
+
+      await loadArchive();
+    } catch (err) {
+      console.error(err);
+      setStatus(err.message || 'Wystąpił błąd.', true);
+    }
+  }
+
+  form.addEventListener('submit', (evt) => handleProcessing(evt, { reusePayload: false }));
+  applyPromptBtn.addEventListener('click', (evt) => handleProcessing(evt, { reusePayload: true }));
+
+  loadArchive();
+</script>
+{% endblock %}
