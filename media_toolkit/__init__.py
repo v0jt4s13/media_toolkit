@@ -12,7 +12,7 @@ from .auth import build_users, login_required, log_entry_access
 # Ensure environment variables are ready before importing blueprints that rely on them.
 get_config()
 
-from audiototext.routes import audiototext_bp  # noqa: E402  (import after config)
+from .audiototext.routes import audiototext_bp  # noqa: E402  (import after config)
 from .content import content_bp  # noqa: E402
 
 _PACKAGE_ROOT = Path(__file__).resolve().parent
