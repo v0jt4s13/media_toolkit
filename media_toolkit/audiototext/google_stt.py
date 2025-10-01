@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 
 from google.cloud import speech
 
-from loggers import audiototext_logger
+from ..loggers import audiototext_logger
 from audiototext.gcs import upload_to_gcs
 
 VIDEO_LANGS = {

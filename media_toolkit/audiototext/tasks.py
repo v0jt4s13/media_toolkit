@@ -12,7 +12,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from loggers import audiototext_logger, logger
+from ..loggers import audiototext_logger, logger
 from audiototext.google_stt import stt_google_from_file, stt_google_from_gcs
 
 RESULTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "results"))
