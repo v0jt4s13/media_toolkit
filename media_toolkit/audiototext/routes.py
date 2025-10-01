@@ -8,11 +8,11 @@ from flask import Blueprint, current_app, jsonify, render_template, request, sen
 from werkzeug.exceptions import HTTPException, RequestEntityTooLarge
 from werkzeug.utils import secure_filename
 
-from ..auth import login_required
-from ..loggers import audiototext_routes_logger
-from .gcs import gcs_selftest
-from .service import TranscriptionService
-from .tasks import RESULTS_DIR, UPLOADS_DIR, get_manager, load_job_state
+from auth import login_required
+from loggers import audiototext_routes_logger
+from audiototext.gcs import gcs_selftest
+from audiototext.service import TranscriptionService
+from audiototext.tasks import RESULTS_DIR, UPLOADS_DIR, get_manager, load_job_state
 
 manager = get_manager()
 _service = TranscriptionService(default_language="pl-PL")
