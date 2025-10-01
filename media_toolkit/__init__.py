@@ -6,7 +6,7 @@ from pathlib import Path
 from flask import Flask, redirect, render_template, request, session, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from config import get_config
+from .config import get_config
 from auth import build_users, login_required, log_entry_access
 
 # Ensure environment variables are ready before importing blueprints that rely on them.
