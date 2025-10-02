@@ -114,18 +114,18 @@ def scrap_url():
 @content_bp.route("/apply-prompt", methods=["POST"])
 @login_required(role=_ALLOWED_ROLES)
 def apply_prompt():
-    audiototext_logger.INFO('AAAAAAAAAAAAa')
+    audiototext_logger.info('AAAAAAAAAAAAa')
     payload = request.get_json(silent=True) or {}
-    audiototext_logger.INFO('BBBBBBBBBBB')
+    audiototext_logger.info('BBBBBBBBBBB')
     prompt_id = (payload.get("prompt_id") or "").strip()
-    audiototext_logger.INFO('CCCCCCCCCCCC')
+    audiototext_logger.info('CCCCCCCCCCCC')
     data = payload.get("data") or {}
-    audiototext_logger.INFO('DDDDDDDDDDDD')
+    audiototext_logger.info('DDDDDDDDDDDD')
     want_tts = bool(payload.get("text_to_speech"))
-    audiototext_logger.INFO('EEEEEEEEEEE')
+    audiototext_logger.info('EEEEEEEEEEE')
 
     prompt = get_prompt_by_id(prompt_id)
-    audiototext_logger.INFO('FFFFFFFFFFFF')
+    audiototext_logger.info('FFFFFFFFFFFF')
     if not prompt:
         return jsonify({"ok": False, "error": "Prompt not found"}), 404
 
