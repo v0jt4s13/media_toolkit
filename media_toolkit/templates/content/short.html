@@ -266,27 +266,29 @@ Ver 1.1
   }
 
   async function handleSubmit(evt, reuse = false) {
-    // alert(`AAAAAAAAAa ===> evt={evt}`);
+    console.log(`AAAAAAAAAa ===> evt={evt}`);
     if (evt) evt.preventDefault();
-    // alert(`BBBBBBBBBBBBBB`)
+    console.log(`BBBBBBBBBBBBBB`)
     const url = urlInput.value.trim();
-    // alert(`CCCCCCCCCCCCCCCC`)
+    console.log(`CCCCCCCCCCCCCCCC`)
     const promptId = promptSelect.value.trim();
-    // alert(`DDDDDDDDDDD`)
+    console.log(`DDDDDDDDDDD`)
     const wantsTts = !!ttsCheckbox?.checked;
 
-    // alert(`url:${url}`, `promptId:${promptId}`, `wantsTts:${wantsTts}`, )
+    console.log(`url:${url}`, `promptId:${promptId}`, `wantsTts:${wantsTts}`, )
     if (!url) return setStatus('Podaj adres URL.', true);
     if (!promptId) return setStatus('Wybierz prompt.', true);
 
     try {
       if (audioEl) {
+        console.log('RRRRRRRRRR');
         audioEl.pause();
         audioEl.classList.add('hidden');
         audioEl.removeAttribute('src');
       }
 
       if (!reuse) {
+        console.log('SSSSSSSSSSSSS');
         setStatus('Pobieram artykuł…');
         const scraped = await scrap(url);
         if (!scraped.ok) throw new Error(scraped.error || 'Nie udało się pobrać danych.');
@@ -294,7 +296,7 @@ Ver 1.1
         titleField.value = lastPayload.title || '';
         textField.value = lastPayload.text || '';
       }
-
+      console.log('TTTTTTTTTTTTTTTT');
       if (!lastPayload) throw new Error('Brak danych wejściowych.');
 
       setStatus('Generuję streszczenie…');
@@ -305,14 +307,15 @@ Ver 1.1
         media: Array.isArray(lastPayload.media) ? lastPayload.media : [],
         language: 'pl'
       };
-
+      console.log('UUUUUUUUUUUUUUU');
       const result = await applyPrompt(promptId, payload, wantsTts);
+      console.log('WWWWWWWWWWWWWWWWWWWWW');
       if (!result.ok) throw new Error(result.error || 'Błąd modelu');
 
       titleField.value = result.result_title || payload.title || '';
       textField.value = result.result_text || '';
       lastPayload = { title: titleField.value, text: textField.value };
-
+      console.log('ZZZZZZZZZZZZZZZZZZZZZ');
       if (result.audio_base64) {
         playAudio(`data:audio/mp3;base64,${result.audio_base64}`);
       } else if (result.audio_url) {
@@ -326,9 +329,10 @@ Ver 1.1
       }
 
       await loadArchive();
+
     } catch (error) {
-      console.log('UUUUUAAAAAA')
-      console.error(error);
+      console.log('UUUUUAAAAAA Error:', error)
+      // console.error(error);
       setStatus(error.message || 'Wystąpił błąd.', true);
     }
   }
