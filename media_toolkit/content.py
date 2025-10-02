@@ -28,7 +28,7 @@ from .news_tools import (
 )
 
 from .auth import login_required
-from .loggers import audiototext_logger
+from .loggers import audiototext_logger, errors_logger
 
 content_bp = Blueprint("content_tools", __name__, url_prefix="/content")
 _ALLOWED_ROLES: List[str] = ["admin", "redakcja", "moderator", "tester", "fox"]
@@ -46,12 +46,10 @@ def _get_user_output_dir(create: bool = False) -> Path:
         user_dir.mkdir(parents=True, exist_ok=True)
     return user_dir
 
-
 def _sanitize_entry_id(entry_id: str) -> str:
     if not entry_id or not ENTRY_ID_RE.match(entry_id):
         abort(404)
     return entry_id
-
 
 def _load_entry(entry_id: str) -> Tuple[Dict[str, Any], Path, str]:
     entry_id = _sanitize_entry_id(entry_id)
@@ -92,14 +90,22 @@ def prompts_list():
 @content_bp.route("/scrap", methods=["POST"])
 @login_required(role=_ALLOWED_ROLES)
 def scrap_url():
+    print(f'\n\t\tSTART ==> scrap_url()')
     payload = request.get_json(silent=True) or {}
     url = (payload.get("url") or "").strip()
+    print('payload, url')
+    print(payload, url)
+
     if not url:
         return jsonify({"ok": False, "error": "Brak pola 'url'"}), 400
 
     try:
         data = scrap_page(url, language="pl")
+        audiototext_logger.info(f'scrap_page({url}, "pl")')
+        audiototext_logger.info(f'data: {data}')
+
     except Exception as exc:  # pragma: no cover - network failures
+        errors_logger.error(f'exc==>{exc}')
         return jsonify({"ok": False, "error": str(exc)}), 500
 
     return jsonify({"ok": True, "payload": data})
