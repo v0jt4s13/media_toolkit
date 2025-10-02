@@ -104,7 +104,7 @@
         <span>Nagraj narrację (TTS)</span>
       </div>
 
-      <button id="mobileFetch" class="btn-primary" type="submit">Pobierz i opracuj</button>
+      <button id="mobileFetch" class="btn-primary" type="submit">Streść mi to</button>
       <button id="mobileReuse" class="btn-secondary" type="button" style="margin-top:12px;">Użyj ponownie danych</button>
     </form>
     <div id="mobileStatus" class="status"></div>
@@ -262,6 +262,7 @@
   }
 
   async function handleSubmit(evt, reuse = false) {
+    alert('AAAAAAAAAa')
     if (evt) evt.preventDefault();
     const url = urlInput.value.trim();
     const promptId = promptSelect.value.trim();
