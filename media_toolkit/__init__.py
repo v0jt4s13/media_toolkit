@@ -42,9 +42,10 @@ def create_app(config_overrides: dict | None = None) -> Flask:
     @app.route("/")
     @login_required(role=_ALLOWED_ROLES)
     def index():
-        audiototext_routes_logger.info(f'\n\t\tSTART ==> index()')
         log_entry_access("/")
         prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
+        audiototext_routes_logger.info(f'\n\t\tSTART ==> index() ==> prefix:{prefix}')
+        
         target = url_for("content_tools.short_mobile")
         audiototext_routes_logger.info(f"[create_app] {prefix}{target}")
         if prefix:
