@@ -269,6 +269,7 @@
     const promptId = promptSelect.value.trim();
     const wantsTts = !!ttsCheckbox?.checked;
 
+  alert(`url:${url}`, `promptId:${promptId}`, `wantsTts:${wantsTts}`, )
     if (!url) return setStatus('Podaj adres URL.', true);
     if (!promptId) return setStatus('Wybierz prompt.', true);
 
@@ -320,6 +321,7 @@
 
       await loadArchive();
     } catch (error) {
+      console.log('UUUUUAAAAAA')
       console.error(error);
       setStatus(error.message || 'Wystąpił błąd.', true);
     }
