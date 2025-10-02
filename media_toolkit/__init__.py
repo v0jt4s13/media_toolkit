@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from flask import Flask, redirect, render_template, request, session, url_for
+from flask import Flask, redirect, render_template, request, session, url_for, current_app
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import get_config
@@ -35,19 +35,29 @@ def create_app(config_overrides: dict | None = None) -> Flask:
     app.register_blueprint(audiototext_bp)
     app.register_blueprint(content_bp)
 
+    app.config["MEDIA_TOOLKIT_URL_PREFIX"] = os.getenv("MEDIA_TOOLKIT_URL_PREFIX", "").rstrip("/")
+
     users = build_users()
 
     @app.route("/")
     @login_required(role=_ALLOWED_ROLES)
     def index():
         log_entry_access("/")
-        return redirect(url_for("content_tools.summary_form"))
+        prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
+        target = url_for("content_tools.summary_mobile")
+        if prefix:
+            target = f"{prefix}{target}"
+        return redirect(target)
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
         log_entry_access("/login")
         if session.get("user"):
-            return redirect(url_for("content_tools.summary_form"))
+            prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
+            target = url_for("content_tools.summary_mobile")
+            if prefix:
+                target = f"{prefix}{target}"
+            return redirect(target)
 
         if request.method == "POST":
             user = request.form.get("username")
@@ -58,7 +68,11 @@ def create_app(config_overrides: dict | None = None) -> Flask:
             if user_data and user_data["password"] == pwd:
                 session["user"] = user
                 session["role"] = user_data["role"]
-                return redirect(url_for("content_tools.summary_form"))
+                prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
+                target = url_for("content_tools.summary_mobile")
+                if prefix:
+                    target = f"{prefix}{target}"
+                return redirect(target)
             return render_template("login.html", error="Nieprawidłowe dane logowania")
 
         return render_template("login.html")
@@ -68,7 +82,11 @@ def create_app(config_overrides: dict | None = None) -> Flask:
     def logout():
         session.pop("user", None)
         session.pop("role", None)
-        return redirect(url_for("login"))
+        prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
+        target = url_for("login")
+        if prefix:
+            target = f"{prefix}{target}"
+        return redirect(target)
 
     @app.route("/transkrypt", methods=["GET"])
     @login_required(role=_ALLOWED_ROLES)
