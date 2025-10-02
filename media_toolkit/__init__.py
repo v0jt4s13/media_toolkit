@@ -70,10 +70,19 @@ def create_app(config_overrides: dict | None = None) -> Flask:
             audiototext_routes_logger.info(f'Proba logowania: {user_data} <===> {users}\n if user_data and {user_data["password"]} == {pwd}')
 
             if user_data and user_data["password"] == pwd:
-                session["user"] = user
-                session["role"] = user_data["role"]
+
+                try:
+                    session["user"] = user
+                    session["role"] = user_data["role"]
+                    audiototext_routes_logger.info(f'[create_app][login] user={user}; user_data["role"]={user_data["role"]}')
+                except Exception as err:
+                    audiototext_routes_logger.info(f'[create_app][login] err: {err}')
+
                 prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
+                audiototext_routes_logger.info(f'[create_app][login] prefix={prefix}')
                 target = url_for("content_tools.short_mobile")
+                audiototext_routes_logger.info(f'[create_app][login] target={target}')
+
                 audiototext_routes_logger.info(f"[create_app][login] {prefix}{target}")
                 if prefix:
                     target = f"{prefix}{target}"
