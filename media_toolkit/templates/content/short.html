@@ -164,7 +164,7 @@ Ver 1.1
 
   async function fetchJSON(url, options) {
     url = `/media_toolkit${url}`;
-    // alert(`url=option===${url}`, options);
+    console.log(`fetch(url,options)`, url, options);
     const res = await fetch(url, options);
     return res.json();
   }
