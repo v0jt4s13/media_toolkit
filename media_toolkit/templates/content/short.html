@@ -146,6 +146,9 @@
     text: '{{ url_for("content_tools.archive_text", entry_id='ENTRY_ID') }}',
     audio: '{{ url_for("content_tools.archive_audio", entry_id='ENTRY_ID') }}',
   };
+  
+  console.log('endpoints endpoints endpoints endpoints ')
+  console.log(endpoints)
 
   function setStatus(message, isError = false) {
     statusBox.textContent = message || '';
