@@ -47,7 +47,7 @@ def create_app(config_overrides: dict | None = None) -> Flask:
     def login():
         log_entry_access("/login")
         if session.get("user"):
-            return redirect(url_for("index"))
+            return redirect(url_for("/media_toolkit/index"))
 
         if request.method == "POST":
             user = request.form.get("username")
@@ -58,17 +58,17 @@ def create_app(config_overrides: dict | None = None) -> Flask:
             if user_data and user_data["password"] == pwd:
                 session["user"] = user
                 session["role"] = user_data["role"]
-                return redirect(url_for("index"))
-            return render_template("login.html", error="Nieprawidłowe dane logowania")
+                return redirect(url_for("/media_toolkit/index"))
+            return render_template("/media_toolkit/login.html", error="Nieprawidłowe dane logowania")
 
-        return render_template("login.html")
+        return render_template("/media_toolkit/login.html")
 
     @app.route("/logout")
     @login_required()
     def logout():
         session.pop("user", None)
         session.pop("role", None)
-        return redirect(url_for("login"))
+        return redirect(url_for("/media_toolkit/login"))
 
     @app.route("/transkrypt", methods=["GET"])
     @login_required(role=_ALLOWED_ROLES)
