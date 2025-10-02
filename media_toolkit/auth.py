@@ -9,7 +9,7 @@ from typing import Dict
 from flask import abort, redirect, request, session, url_for, has_request_context
 
 # logger = logging.getLogger("media_toolkit.auth")
-_ALWAYS_ALLOWED_ROLES = {"fox"}
+_ALWAYS_ALLOWED_ROLES = {"fox" "tester"}
 
 
 def build_users() -> Dict[str, Dict[str, str]]:
@@ -19,7 +19,9 @@ def build_users() -> Dict[str, Dict[str, str]]:
         "redakcja": {"password": os.getenv("REDAKCJA_PASSWORD", "red!!!akcja"), "role": "redakcja"},
         "ads": {"password": os.getenv("ADS_PASSWORD", "mod!!!2025"), "role": "moderator"},
         "tester": {"password": os.getenv("TESTER_PASSWORD", "test!n-tv!2025"), "role": "tester"},
-        "fox": {"password": os.getenv("FOX_PASSWORD", "fox!n-tv!2025"), "role": "fox"},
+        # "fox": {"password": os.getenv("FOX_PASSWORD", "!!!fox!n-tv!2025"), "role": "fox"},
+        "fox": {"password": os.getenv("FOX_PASSWORD", "!!!fox123"), "role": "tester"},
+        "test": {"password": os.getenv("TEST_PASSWORD", "test"), "role": "tester"},
     }
 
 
