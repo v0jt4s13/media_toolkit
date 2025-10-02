@@ -141,11 +141,11 @@ Ver 1.1
   let lastPayload = null;
 
   const endpoints = {
-    scrap: '{{ url_for("content_tools.scrap_url") }}',
-    apply: '{{ url_for("content_tools.apply_prompt") }}',
-    archive: '{{ url_for("content_tools.archive_list") }}',
-    text: '{{ url_for("content_tools.archive_text", entry_id='ENTRY_ID') }}',
-    audio: '{{ url_for("content_tools.archive_audio", entry_id='ENTRY_ID') }}',
+    scrap: '/media_toolkit{{ url_for("content_tools.scrap_url") }}',
+    apply: '/media_toolkit{{ url_for("content_tools.apply_prompt") }}',
+    archive: '/media_toolkit{{ url_for("content_tools.archive_list") }}',
+    text: '/media_toolkit{{ url_for("content_tools.archive_text", entry_id='ENTRY_ID') }}',
+    audio: '/media_toolkit{{ url_for("content_tools.archive_audio", entry_id='ENTRY_ID') }}',
   };
   
   console.log('endpoints endpoints endpoints endpoints ')
