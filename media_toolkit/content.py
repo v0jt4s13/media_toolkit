@@ -77,7 +77,7 @@ def summary_form():
 
 @content_bp.route("/short", methods=["GET"])
 @login_required(role=_ALLOWED_ROLES)
-def summary_mobile():
+def short_mobile():
     """Mobile-friendly summary workflow."""
     return render_template("content/short.html", prompts=PROMPTS)
 

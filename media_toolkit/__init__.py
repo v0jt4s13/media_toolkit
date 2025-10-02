@@ -42,9 +42,10 @@ def create_app(config_overrides: dict | None = None) -> Flask:
     @app.route("/")
     @login_required(role=_ALLOWED_ROLES)
     def index():
+        audiototext_routes_logger.info(f'\n\t\tSTART ==> index()')
         log_entry_access("/")
         prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
-        target = url_for("content_tools.summary_mobile")
+        target = url_for("content_tools.short_mobile")
         audiototext_routes_logger.info(f"[create_app] {prefix}{target}")
         if prefix:
             target = f"{prefix}{target}"
@@ -52,10 +53,12 @@ def create_app(config_overrides: dict | None = None) -> Flask:
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
+        audiototext_routes_logger.info(f'\n\t\tSTART ==> login()')
         log_entry_access("/login")
         if session.get("user"):
             prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
-            target = url_for("content_tools.summary_mobile")
+            target = url_for("content_tools.short_mobile")
+            audiototext_routes_logger.info(f"[create_app][login] {prefix}{target}")
             if prefix:
                 target = f"{prefix}{target}"
             return redirect(target)
@@ -70,7 +73,8 @@ def create_app(config_overrides: dict | None = None) -> Flask:
                 session["user"] = user
                 session["role"] = user_data["role"]
                 prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
-                target = url_for("content_tools.summary_mobile")
+                target = url_for("content_tools.short_mobile")
+                audiototext_routes_logger.info(f"[create_app][login] {prefix}{target}")
                 if prefix:
                     target = f"{prefix}{target}"
                     audiototext_routes_logger.info(f"{prefix}{target}")
@@ -82,10 +86,12 @@ def create_app(config_overrides: dict | None = None) -> Flask:
     @app.route("/logout")
     @login_required()
     def logout():
+        audiototext_routes_logger.info(f'\n\t\tSTART ==> logout()')
         session.pop("user", None)
         session.pop("role", None)
         prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
         target = url_for("login")
+        audiototext_routes_logger.info(f"[create_app][logout] {prefix}{target}")
         if prefix:
             target = f"{prefix}{target}"
         return redirect(target)
@@ -93,17 +99,20 @@ def create_app(config_overrides: dict | None = None) -> Flask:
     @app.route("/transkrypt", methods=["GET"])
     @login_required(role=_ALLOWED_ROLES)
     def transcripts_view():
+        audiototext_routes_logger.info(f'\n\t\tSTART ==> transcripts_view()')
         return render_template("transkrypt.html")
 
     @app.route("/audiototext/summary", methods=["GET"])
     @login_required(role=_ALLOWED_ROLES)
     def legacy_summary_alias():
+        audiototext_routes_logger.info(f'\n\t\tSTART ==> legacy_summary_alias()')
         return redirect(url_for("content_tools.summary_form"))
 
     @app.route("/audiototext/short", methods=["GET"])
     @login_required(role=_ALLOWED_ROLES)
     def legacy_short_alias():
-        return redirect(url_for("content_tools.summary_mobile"))
+        audiototext_routes_logger.info(f'\n\t\tSTART ==> legacy_short_alias() ==> {url_for("content_tools.short_mobile")}')
+        return redirect(url_for("content_tools.short_mobile"))
 
     @app.errorhandler(403)
     def forbidden(error):  # pragma: no cover - simple render path
