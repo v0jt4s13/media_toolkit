@@ -164,18 +164,19 @@ Ver 1.2
 
   async function fetchJSON(url, options) {
     // url = `/media_toolkit${url}`;
-    console.log(`fetch(url,options)`, url, options);
+    console.log(`[fetchJSON] fetch(url,options)`, url, options);
     const res = await fetch(url, options);
     try {
       console.log('1. res.json()', res.json());
     } catch (error) {
       console.log('2. res.json() ERROR:', error);
     }
-    console.log(`fetch(url,options) - KONIEC`)
+    console.log(`[fetchJSON] fetch(url,options) - KONIEC`)
     return res.json();
   }
 
   async function scrap(url) {
+    console.log(`[scrap] return fetchJSON(${endpoints.scrap}, url=${url})`)
     return fetchJSON(endpoints.scrap, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -293,9 +294,11 @@ Ver 1.2
       }
 
       if (!reuse) {
-        console.log('SSSSSSSSSSSSS');
+        console.log('1. SSSSSSSSSSSSS ', url);
         setStatus('Pobieram artykuł…');
         const scraped = await scrap(url);
+        console.log('2. SSSSSSSSSSSSS');
+        console.log(scraped);
         if (!scraped.ok) throw new Error(scraped.error || 'Nie udało się pobrać danych.');
         lastPayload = scraped.payload || {};
         titleField.value = lastPayload.title || '';
