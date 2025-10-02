@@ -187,6 +187,7 @@ def apply_prompt():
     if audio_filename and "audio_url" not in response:
         response["audio_url"] = url_for("content_tools.archive_audio", entry_id=entry_id)
 
+    audiototext_logger.info(f'response ==> {response}')
     return jsonify(response)
 
 
