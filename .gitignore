@@ -2,6 +2,9 @@
 # **/media_toolkit/__main__.py
 # **/media_toolkit/__init__.py
 **/media_toolkit/logs
+*/media_toolkit/logs
+media_toolkit/logs
+*logs*
 **/media_toolkit/__pycache__
 **/media_toolkit/venv/
 **/data_settings
