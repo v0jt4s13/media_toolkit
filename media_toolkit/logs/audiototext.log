@@ -5,3 +5,21 @@
 2025-10-01 17:54:10,850 - ERROR - Brak zmiennej GOOGLE_APPLICATION_CREDENTIALS!
 2025-10-01 18:09:22,647 - ERROR - Brak zmiennej GOOGLE_APPLICATION_CREDENTIALS!
 2025-10-01 18:12:43,825 - ERROR - Brak zmiennej GOOGLE_APPLICATION_CREDENTIALS!
+2025-10-02 02:13:44,056 - INFO - Access | 127.0.0.1 | / | fox | Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1
+2025-10-02 02:13:44,057 - INFO - Access | 127.0.0.1 | / | fox | Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1
+2025-10-02 02:13:44,063 - INFO - Access | 127.0.0.1 | /audiototext/ | fox | Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1
+2025-10-02 02:13:44,170 - INFO - Access | 127.0.0.1 | /.well-known/appspecific/com.chrome.devtools.json | fox | Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36
+2025-10-02 02:13:49,908 - INFO - Access | 127.0.0.1 | /content/short | fox | Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1
+2025-10-02 02:13:49,943 - INFO - Access | 127.0.0.1 | /.well-known/appspecific/com.chrome.devtools.json | fox | Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36
+2025-10-02 02:13:49,969 - INFO - Access | 127.0.0.1 | /content/archive | fox | Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1
+2025-10-02 02:13:59,910 - INFO - Access | 127.0.0.1 | /logout | fox | Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1
+2025-10-02 02:13:59,918 - INFO - Access | 127.0.0.1 | /login | guest | Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1
+2025-10-02 02:13:59,996 - INFO - Access | 127.0.0.1 | /login | guest | Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36
+2025-10-02 02:14:14,441 - INFO - Access | 127.0.0.1 | /login | guest | Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1
+2025-10-02 02:14:14,448 - INFO - Access | 127.0.0.1 | / | fox | Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1
+2025-10-02 02:14:14,448 - INFO - Access | 127.0.0.1 | / | fox | Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1
+2025-10-02 02:14:14,455 - INFO - Access | 127.0.0.1 | /audiototext/ | fox | Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1
+2025-10-02 02:14:14,537 - INFO - Access | 127.0.0.1 | /.well-known/appspecific/com.chrome.devtools.json | fox | Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36
+2025-10-02 02:14:25,551 - INFO - Access | 127.0.0.1 | /content/short | fox | Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1
+2025-10-02 02:14:25,616 - INFO - Access | 127.0.0.1 | /.well-known/appspecific/com.chrome.devtools.json | fox | Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36
+2025-10-02 02:14:25,634 - INFO - Access | 127.0.0.1 | /content/archive | fox | Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1

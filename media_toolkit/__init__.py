@@ -8,6 +8,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import get_config
 from .auth import build_users, login_required, log_entry_access
+from .loggers import audiototext_routes_logger
 
 # Ensure environment variables are ready before importing blueprints that rely on them.
 get_config()
@@ -52,6 +53,8 @@ def create_app(config_overrides: dict | None = None) -> Flask:
             user = request.form.get("username")
             pwd = request.form.get("password")
             user_data = users.get(user)
+            audiototext_routes_logger.info(f'Proba logowania: {user_data}\n if user_data and {user_data["password"]} == {pwd}')
+
             if user_data and user_data["password"] == pwd:
                 session["user"] = user
                 session["role"] = user_data["role"]
