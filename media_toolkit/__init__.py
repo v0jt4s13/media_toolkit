@@ -45,6 +45,7 @@ def create_app(config_overrides: dict | None = None) -> Flask:
         log_entry_access("/")
         prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
         target = url_for("content_tools.summary_mobile")
+        audiototext_routes_logger.info(f"[create_app] {prefix}{target}")
         if prefix:
             target = f"{prefix}{target}"
         return redirect(target)
