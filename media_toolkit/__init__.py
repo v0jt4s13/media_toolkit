@@ -41,13 +41,13 @@ def create_app(config_overrides: dict | None = None) -> Flask:
     @login_required(role=_ALLOWED_ROLES)
     def index():
         log_entry_access("/")
-        return redirect(url_for("audiototext.upload_form"))
+        return redirect(url_for("content_tools.summary_form"))
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
         log_entry_access("/login")
         if session.get("user"):
-            return redirect(url_for("/media_toolkit/index"))
+            return redirect(url_for("content_tools.summary_form"))
 
         if request.method == "POST":
             user = request.form.get("username")
@@ -58,17 +58,17 @@ def create_app(config_overrides: dict | None = None) -> Flask:
             if user_data and user_data["password"] == pwd:
                 session["user"] = user
                 session["role"] = user_data["role"]
-                return redirect(url_for("/media_toolkit/index"))
-            return render_template("/media_toolkit/login.html", error="Nieprawidłowe dane logowania")
+                return redirect(url_for("content_tools.summary_form"))
+            return render_template("login.html", error="Nieprawidłowe dane logowania")
 
-        return render_template("/media_toolkit/login.html")
+        return render_template("login.html")
 
     @app.route("/logout")
     @login_required()
     def logout():
         session.pop("user", None)
         session.pop("role", None)
-        return redirect(url_for("/media_toolkit/login"))
+        return redirect(url_for("login"))
 
     @app.route("/transkrypt", methods=["GET"])
     @login_required(role=_ALLOWED_ROLES)
