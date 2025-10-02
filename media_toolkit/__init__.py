@@ -30,7 +30,7 @@ def create_app(config_overrides: dict | None = None) -> Flask:
     )
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
     app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
-    app.secret_key = os.getenv("FLASK_SECRET_KEY", "change-me")
+    app.secret_key = os.getenv("FLASK_SECRET_KEY", "change-me-why-you-ask")
 
     app.register_blueprint(audiototext_bp)
     app.register_blueprint(content_bp)
@@ -72,6 +72,7 @@ def create_app(config_overrides: dict | None = None) -> Flask:
                 target = url_for("content_tools.summary_mobile")
                 if prefix:
                     target = f"{prefix}{target}"
+                    audiototext_routes_logger.info(f"{prefix}{target}")
                 return redirect(target)
             return render_template("login.html", error="Nieprawidłowe dane logowania")
 
