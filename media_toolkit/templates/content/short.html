@@ -263,13 +263,16 @@
   }
 
   async function handleSubmit(evt, reuse = false) {
-    alert('AAAAAAAAAa')
+    alert(`AAAAAAAAAa ===> evt={evt}`);
     if (evt) evt.preventDefault();
+    alert(`BBBBBBBBBBBBBB`)
     const url = urlInput.value.trim();
+    alert(`CCCCCCCCCCCCCCCC`)
     const promptId = promptSelect.value.trim();
+    alert(`DDDDDDDDDDD`)
     const wantsTts = !!ttsCheckbox?.checked;
 
-  alert(`url:${url}`, `promptId:${promptId}`, `wantsTts:${wantsTts}`, )
+    alert(`url:${url}`, `promptId:${promptId}`, `wantsTts:${wantsTts}`, )
     if (!url) return setStatus('Podaj adres URL.', true);
     if (!promptId) return setStatus('Wybierz prompt.', true);
 
