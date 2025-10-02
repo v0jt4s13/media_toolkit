@@ -164,7 +164,7 @@ Ver 1.1
 
   async function fetchJSON(url, options) {
     url = `/media_toolkit${url}`;
-    alert(`url=option===${url}`, options);
+    // alert(`url=option===${url}`, options);
     const res = await fetch(url, options);
     return res.json();
   }
@@ -265,16 +265,16 @@ Ver 1.1
   }
 
   async function handleSubmit(evt, reuse = false) {
-    alert(`AAAAAAAAAa ===> evt={evt}`);
+    // alert(`AAAAAAAAAa ===> evt={evt}`);
     if (evt) evt.preventDefault();
-    alert(`BBBBBBBBBBBBBB`)
+    // alert(`BBBBBBBBBBBBBB`)
     const url = urlInput.value.trim();
-    alert(`CCCCCCCCCCCCCCCC`)
+    // alert(`CCCCCCCCCCCCCCCC`)
     const promptId = promptSelect.value.trim();
-    alert(`DDDDDDDDDDD`)
+    // alert(`DDDDDDDDDDD`)
     const wantsTts = !!ttsCheckbox?.checked;
 
-    alert(`url:${url}`, `promptId:${promptId}`, `wantsTts:${wantsTts}`, )
+    // alert(`url:${url}`, `promptId:${promptId}`, `wantsTts:${wantsTts}`, )
     if (!url) return setStatus('Podaj adres URL.', true);
     if (!promptId) return setStatus('Wybierz prompt.', true);
 
