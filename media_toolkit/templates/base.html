@@ -92,6 +92,9 @@
       }
     }
   </style>
+  <script>
+    window.MEDIA_TOOLKIT_PREFIX = "{{ current_app.config.get('MEDIA_TOOLKIT_URL_PREFIX', '') }}";
+  </script>
   {% block extra_styles %}{% endblock %}
   {% block extra_js %}{% endblock %}
 </head>

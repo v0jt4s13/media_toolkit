@@ -17,6 +17,7 @@ from flask import (
     send_file,
     session,
     url_for,
+    current_app,
 )
 
 from .news_tools import (
@@ -64,6 +65,15 @@ def _load_entry(entry_id: str) -> Tuple[Dict[str, Any], Path, str]:
     with json_path.open("r", encoding="utf-8") as handle:
         data = json.load(handle)
     return data, user_dir, entry_id
+
+
+def _with_prefix(path: Optional[str]) -> Optional[str]:
+    if not path:
+        return path
+    prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
+    if prefix and path.startswith("/") and not path.startswith(prefix + "/"):
+        return f"{prefix}{path}"
+    return path
 
 
 @content_bp.route("/summary", methods=["GET"])
@@ -172,7 +182,7 @@ def apply_prompt():
         audio_filename = f"{entry_id}.mp3"
         audio_path = user_dir / audio_filename
         audio_path.write_bytes(audio_bytes)
-        response["audio_url"] = url_for("content_tools.archive_audio", entry_id=entry_id)
+        response["audio_url"] = _with_prefix(url_for("content_tools.archive_audio", entry_id=entry_id))
 
     created_at = datetime.utcnow().isoformat() + "Z"
     metadata = {
@@ -189,9 +199,9 @@ def apply_prompt():
         json.dump(metadata, handle, ensure_ascii=False, indent=2)
 
     response["entry_id"] = entry_id
-    response["text_url"] = url_for("content_tools.archive_text", entry_id=entry_id)
+    response["text_url"] = _with_prefix(url_for("content_tools.archive_text", entry_id=entry_id))
     if audio_filename and "audio_url" not in response:
-        response["audio_url"] = url_for("content_tools.archive_audio", entry_id=entry_id)
+        response["audio_url"] = _with_prefix(url_for("content_tools.archive_audio", entry_id=entry_id))
 
     audiototext_logger.info(f'response ==> {response}')
     return jsonify(response)
@@ -216,10 +226,10 @@ def archive_list():
                 "prompt_id": data.get("prompt_id"),
                 "title": data.get("title") or "",
                 "created_at": data.get("created_at"),
-                "text_url": url_for("content_tools.archive_text", entry_id=entry_id),
+                "text_url": _with_prefix(url_for("content_tools.archive_text", entry_id=entry_id)),
             }
             if data.get("audio_filename"):
-                entry["audio_url"] = url_for("content_tools.archive_audio", entry_id=entry_id)
+                entry["audio_url"] = _with_prefix(url_for("content_tools.archive_audio", entry_id=entry_id))
             entries.append(entry)
 
     return jsonify({"ok": True, "entries": entries})
@@ -238,7 +248,7 @@ def archive_text(entry_id: str):
         "created_at": data.get("created_at"),
     }
     if data.get("audio_filename"):
-        response["audio_url"] = url_for("content_tools.archive_audio", entry_id=clean_id)
+        response["audio_url"] = _with_prefix(url_for("content_tools.archive_audio", entry_id=clean_id))
     return jsonify(response)
 
 
