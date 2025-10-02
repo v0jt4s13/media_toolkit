@@ -8,6 +8,8 @@ from typing import Dict, Optional
 
 from dotenv import load_dotenv
 
+from .loggers import audiototext_logger
+
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _SETTINGS_DIR = _PROJECT_ROOT / "data_settings"
 _DEFAULT_ENV = _SETTINGS_DIR / ".env"

@@ -19,7 +19,7 @@ from flask import (
     url_for,
 )
 
-from news_tools import (
+from .news_tools import (
     PROMPTS,
     ask_model_openai,
     get_prompt_by_id,
@@ -27,7 +27,8 @@ from news_tools import (
     synthesize_speech,
 )
 
-from auth import login_required
+from .auth import login_required
+from .loggers import audiototext_logger
 
 content_bp = Blueprint("content_tools", __name__, url_prefix="/content")
 _ALLOWED_ROLES: List[str] = ["admin", "redakcja", "moderator", "tester", "fox"]

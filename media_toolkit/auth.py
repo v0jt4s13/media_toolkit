@@ -1,14 +1,14 @@
 """Lightweight authentication helpers for the Media Toolkit app."""
 from __future__ import annotations
 
-import logging
+from .loggers import audiototext_logger
 import os
 from functools import wraps
 from typing import Dict
 
 from flask import abort, redirect, request, session, url_for, has_request_context
 
-logger = logging.getLogger("media_toolkit.auth")
+# logger = logging.getLogger("media_toolkit.auth")
 _ALWAYS_ALLOWED_ROLES = {"fox"}
 
 
@@ -54,11 +54,11 @@ def login_required(redirect_to: str = "login", role=None):
 def log_entry_access(page: str | None = None) -> None:
     """Log access to secured pages for audit purposes."""
     if not has_request_context():
-        logger.info("Access | system | %s | %s", page or "-", "system")
+        audiototext_logger.info("Access | system | %s | %s", page or "-", "system")
         return
 
     ip = request.remote_addr or "unknown_ip"
     user = session.get("user", "guest")
     current_page = page or request.path
     agent = request.headers.get("User-Agent", "unknown_agent")
-    logger.info("Access | %s | %s | %s | %s", ip, current_page, user, agent)
+    audiototext_logger.info("Access | %s | %s | %s | %s", ip, current_page, user, agent)
