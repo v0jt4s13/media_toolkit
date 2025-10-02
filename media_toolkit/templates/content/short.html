@@ -166,6 +166,7 @@ Ver 1.1
     url = `/media_toolkit${url}`;
     console.log(`fetch(url,options)`, url, options);
     const res = await fetch(url, options);
+    console.log('res.json()', res.json());
     return res.json();
   }
 
