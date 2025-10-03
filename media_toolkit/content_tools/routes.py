@@ -2,6 +2,7 @@
 """Content processing tools (URL scraping + prompt application)."""
 from __future__ import annotations
 
+from flask import current_app
 import base64
 import json
 import re
@@ -68,7 +69,7 @@ def _load_entry(entry_id: str) -> Tuple[Dict[str, Any], Path, str]:
     return data, user_dir, entry_id
 
 def _with_prefix(path: Optional[str]) -> Optional[str]:
-    from flask import current_app
+    
     if not path:
         return path
     try:
