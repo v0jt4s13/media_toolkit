@@ -1,16 +1,32 @@
+# gcs.py - v1.2
 """Google Cloud Storage helpers."""
 from __future__ import annotations
 
 import os
 import time
 import uuid
+import mimetypes
 from typing import Any, Dict, Optional
 
 from google.api_core.exceptions import Forbidden, GoogleAPIError, NotFound
 from google.cloud import storage
 
+A2T_GCS_BUCKET = os.environ.get("A2T_GCS_BUCKET")
 
-def upload_to_gcs(file_path: str, bucket_name: str, prefix: Optional[str] = None) -> str:
+def upload_to_gcs(local_path: str, bucket_name: str, prefix: str = "audiototext/") -> str:
+    """Wyślij plik do GCS z poprawnym MIME i rozszerzeniem."""
+    if not bucket_name:
+        raise RuntimeError("Brak A2T_GCS_BUCKET w env.")
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    ext = os.path.splitext(local_path)[1] or ".bin"
+    mime = mimetypes.guess_type(local_path)[0] or "application/octet-stream"
+    blob_name = f"{prefix}{uuid.uuid4().hex}{ext}"
+    blob = bucket.blob(blob_name)
+    blob.upload_from_filename(local_path, content_type=mime)
+    return f"gs://{bucket_name}/{blob_name}"
+
+def upload_to_gcs_depr(file_path: str, bucket_name: str, prefix: Optional[str] = None) -> str:
     client = storage.Client()
     bucket = client.bucket(bucket_name)
     key_prefix = (prefix or os.getenv("GCS_PREFIX") or "stt_uploads/").strip("/")
@@ -24,7 +40,7 @@ def gcs_selftest(bucket_name: Optional[str] = None, prefix: Optional[str] = None
     start_ts = time.time()
     info: Dict[str, Any] = {
         "ok": False,
-        "bucket": bucket_name or os.getenv("GCS_BUCKET"),
+        "bucket": bucket_name or os.getenv("A2T_GCS_BUCKET"),
         "prefix": (prefix or os.getenv("GCS_PREFIX") or "stt_uploads/").strip("/"),
         "test_blob": None,
         "roundtrip_ms": None,
@@ -34,7 +50,7 @@ def gcs_selftest(bucket_name: Optional[str] = None, prefix: Optional[str] = None
     try:
         bucket_name = info["bucket"]
         if not bucket_name:
-            info["error"] = "Missing GCS bucket. Set GCS_BUCKET env var or pass ?bucket=..."
+            info["error"] = "Missing GCS bucket. Set A2T_GCS_BUCKET env var or pass ?bucket=..."
             return info
 
         client = storage.Client()

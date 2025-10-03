@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Media Toolkit{% endblock %}</title>
+  <title>{% block title %}Media Toolkit{% endblock %} - v1.2</title>
   <style>
     :root { color-scheme: dark light; }
     body {
@@ -93,7 +93,9 @@
     }
   </style>
   <script>
-    window.MEDIA_TOOLKIT_PREFIX = "{{ current_app.config.get('MEDIA_TOOLKIT_URL_PREFIX', '') }}";
+    // window.MEDIA_TOOLKIT_PREFIX = "{\{ current_app.config.get('MEDIA_TOOLKIT_URL_PREFIX', '') \}}";
+    // window.MEDIA_TOOLKIT_PREFIX = "{{ media_toolkit_prefix }}";
+    window.MEDIA_TOOLKIT_PREFIX = "/media_toolkit";
   </script>
   {% block extra_styles %}{% endblock %}
   {% block extra_js %}{% endblock %}
@@ -104,15 +106,12 @@
     <span class="nav-toggle-indicator">☰</span>
   </header>
   <nav>
-    <p><a href="/media_toolkit{{ url_for('content_tools.short_mobile') }}">Streszczenie Mobile
-      <br>{{ url_for('content_tools.short_mobile') }}
-      <br>/media_toolkit/content_tools/short_mobile
-    </a></p>
-    <a href="/media_toolkit{{ url_for('audiototext.upload_form') }}">Transkrypcje</a>
-    <a href="/media_toolkit{{ url_for('audiototext.results_browser') }}">Wyniki</a>
-    <a href="/media_toolkit{{ url_for('content_tools.summary_form') }}">Streszczenie</a>
-    <a href="/media_toolkit{{ url_for('transcripts_view') }}">Transkrypcje — podgląd</a>
-    <a href="/media_toolkit{{ url_for('logout') }}">Wyloguj</a>
+    <p><a href="/media_toolkit/content/short">Streszczenie</a></p>
+    <a href="/audiototext/">Transkrypcje</a>
+    <a href="/audiototext/results/browser">Wyniki</a>
+    <!-- <a href="/media_toolkit/content/summary">Streszczenie</a> -->
+    <a href="/media_toolkit/transkrypt">Transkrypcje — podgląd</a>
+    <a href="/media_toolkit/logout">Wyloguj</a>
   </nav>
   <main>
     {% block content %}{% endblock %}

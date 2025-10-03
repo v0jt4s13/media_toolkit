@@ -1,0 +1,14 @@
+{
+  "job_id": "c77b0e90f1214d94aa6a39fd73641f99",
+  "file_path": "/home/vs/projects/ai/media_toolkit/media_toolkit/audiototext/uploads/KyicpY_p0iA.mp4",
+  "gcs_uri": "gs://audiototext_project_test/audiototext/0ba8ecb876f24509b46fc6e8ce2cb5a2.mp4",
+  "params": {
+    "language_code": "pl-PL",
+    "diarization_speaker_count": null,
+    "enable_word_time_offsets": false
+  },
+  "status": "error",
+  "result_path": null,
+  "error": "Empty result from Google STT. Possible causes: long audio in sync mode, unsupported codec, silence, or wrong language_code.",
+  "updated_at": 1759504114
+}

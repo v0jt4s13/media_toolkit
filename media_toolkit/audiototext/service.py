@@ -1,10 +1,11 @@
+# service.py - v1.2
 """Google Speech transcription service wrapper."""
 from __future__ import annotations
 
 import os
 from typing import Any, Dict, List, Optional
 
-from google.cloud import speech
+from google.cloud import speech_v1p1beta1 as speech
 
 from ..loggers import audiototext_logger
 from .google_speech import build_config, extract_transcript

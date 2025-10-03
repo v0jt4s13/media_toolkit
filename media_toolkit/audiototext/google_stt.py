@@ -1,3 +1,4 @@
+# google_stt.py - v1.2
 """High-level Google STT helpers with YouTube/GCS fallbacks."""
 from __future__ import annotations
 
@@ -7,10 +8,10 @@ import tempfile
 import wave
 from typing import Any, Dict, List, Optional
 
-from google.cloud import speech
+from google.cloud import speech_v1p1beta1 as speech
 
 from ..loggers import audiototext_logger
-from .gcs import upload_to_gcs
+from .gcs import A2T_GCS_BUCKET, upload_to_gcs
 
 VIDEO_LANGS = {
     "en-US",
@@ -150,6 +151,7 @@ def stt_google_from_file(
     use_enhanced: Optional[bool] = None,
     model: Optional[str] = None,
     long_timeout_seconds: int = 3600,
+    enable_automatic_punctuation: bool = True,
 ) -> Optional[Dict[str, Any]]:
     if not os.path.isfile(file_path):
         return None
@@ -183,20 +185,23 @@ def stt_google_from_file(
         else:
             effective_model = ""
 
-    def _via_gcs(src_path: str, lang: str, force_linear16_16k: bool = False) -> Optional[Dict[str, Any]]:
-        gcs_bucket = os.getenv("GCS_BUCKET")
+    def _via_gcs(src_path: str, language_code: str, force_linear16_16k: bool = False) -> Optional[Dict[str, Any]]:
+        gcs_bucket = os.getenv("A2T_GCS_BUCKET")
         if not gcs_bucket:
             return None
         uri = upload_to_gcs(src_path, gcs_bucket)
         cfg_kwargs = dict(
-            language_code=lang,
-            enable_automatic_punctuation=True,
-            enable_word_time_offsets=enable_word_time_offsets,
+            language_code=language_code,
+            encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+            sample_rate_hertz=16000,
+            enable_automatic_punctuation=enable_automatic_punctuation,
+            enable_word_time_offsets=True,
             diarization_config=diarization_config,
             speech_contexts=speech_contexts or None,
-            model=effective_model,
-            use_enhanced=effective_use_enhanced,
+            model=effective_model or "",
+            use_enhanced=effective_use_enhanced if effective_use_enhanced is not None else False,
         )
+
         if force_linear16_16k:
             cfg_kwargs.update(
                 {
@@ -210,7 +215,7 @@ def stt_google_from_file(
         response = operation.result(timeout=long_timeout_seconds)
         return _attach_meta(
             _extract_transcript(response),
-            {"via": "gcs", "lang": lang, "uri": uri},
+            {"via": "gcs", "lang": language_code, "uri": uri},
             diarization_config,
             effective_model,
             effective_use_enhanced,
@@ -234,13 +239,15 @@ def stt_google_from_file(
         best_result = None
         for lang in try_langs:
             config = speech.RecognitionConfig(
-                language_code=lang,
-                enable_automatic_punctuation=True,
+                language_code=language_code,
+                encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+                sample_rate_hertz=16000,
+                enable_automatic_punctuation=enable_automatic_punctuation,
                 enable_word_time_offsets=enable_word_time_offsets,
                 diarization_config=diarization_config,
                 speech_contexts=speech_contexts or None,
-                model=effective_model,
-                use_enhanced=effective_use_enhanced,
+                model=model or "",
+                use_enhanced=use_enhanced if use_enhanced is not None else False,
             )
             try:
                 response = client.recognize(config=config, audio=audio)
@@ -283,6 +290,7 @@ def stt_google_from_gcs(
     use_enhanced: Optional[bool] = None,
     model: Optional[str] = None,
     long_timeout_seconds: int = 3600,
+    enable_automatic_punctuation: bool = True,
 ) -> Optional[Dict[str, Any]]:
     client = speech.SpeechClient()
 
@@ -300,12 +308,14 @@ def stt_google_from_gcs(
 
     config = speech.RecognitionConfig(
         language_code=language_code,
-        enable_automatic_punctuation=True,
+        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+        sample_rate_hertz=16000,
+        enable_automatic_punctuation=enable_automatic_punctuation,
         enable_word_time_offsets=enable_word_time_offsets,
         diarization_config=diarization_config,
         speech_contexts=speech_contexts or None,
         model=model or "",
-        use_enhanced=bool(use_enhanced) if use_enhanced is not None else False,
+        use_enhanced=use_enhanced if use_enhanced is not None else False,
     )
     audio = speech.RecognitionAudio(uri=gcs_uri)
     operation = client.long_running_recognize(config=config, audio=audio)

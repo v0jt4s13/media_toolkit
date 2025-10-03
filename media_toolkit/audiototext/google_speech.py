@@ -1,9 +1,10 @@
+# google_speech.py - v1.2
 """Helpers for building Google Speech API requests."""
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from google.cloud import speech
+from google.cloud import speech_v1p1beta1 as speech
 
 
 def build_config(
@@ -29,6 +30,8 @@ def build_config(
 
     config = speech.RecognitionConfig(
         language_code=language_code,
+        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+        sample_rate_hertz=16000,
         enable_automatic_punctuation=enable_automatic_punctuation,
         enable_word_time_offsets=enable_word_time_offsets,
         diarization_config=diarization_config,

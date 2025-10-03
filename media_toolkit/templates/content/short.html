@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Streszczenie Mobile{% endblock %}
+{% block title %}Streszczenie Mobile - v1.2{% endblock %}
 {% block header %}Streszczenie — Mobile{% endblock %}
 
 {% block extra_styles %}
@@ -86,15 +86,19 @@
   .archive-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; }
   .archive-actions a,
   .archive-actions button {
-    flex:1 1 48%;
+    flex:1 1 32%;
     font-size:0.95rem;
     border-radius:16px;
     padding:14px;
     max-width:100%;
   }
+  .archive-actions a {
+    text-align: center;
+  }
   @media (min-width: 768px) {
     .mobile-wrap { max-width:640px; margin:0 auto; }
   }
+  a.button.is-disabled { opacity: .6; cursor: not-allowed; pointer-events: none; }
 </style>
 {% endblock %}
 
@@ -102,14 +106,13 @@
 V1.3
 <div class="mobile-wrap">
   <div class="panel">
-    <h2>Nowe streszczenie</h2>
+    <h2>Streść artykuł z:</h2>
     <form id="mobileForm" novalidate>
-      <label for="mobile-url">Adres artykułu</label>
+      <!-- <label for="mobile-url">Adres artykułu</label> -->
       <input id="mobile-url" type="url" placeholder="https://…" required>
-
-      <label for="mobile-prompt">Wybierz prompt</label>
+      <!-- <label for="mobile-prompt">Wybierz prompt</label> -->
       <select id="mobile-prompt" required>
-        <option value="">— wybierz —</option>
+        <option value="">— długość streszczenia —</option>
         {% for prompt in prompts %}
           <option value="{{ prompt.id }}">{{ prompt.label }}</option>
         {% endfor %}
@@ -121,7 +124,7 @@ V1.3
       </div>
 
       <button id="mobileFetch" class="btn-primary" type="submit">Streść mi to</button>
-      <button id="mobileReuse" class="btn-secondary" type="button" style="margin-top:12px;">Użyj ponownie danych</button>
+      <!-- <button id="mobileReuse" class="btn-secondary" type="button" style="margin-top:12px;">Użyj ponownie danych</button> -->
     </form>
     <div id="mobileStatus" class="status"></div>
   </div>
@@ -152,19 +155,30 @@ V1.3
   const reuseBtn = document.getElementById('mobileReuse');
   const ttsCheckbox = document.getElementById('mobile-tts');
   const archiveEl = document.getElementById('mobileArchive');
+  const mobileFetch = document.getElementById('mobileFetch');
 
   let lastPayload = null;
 
-  const endpoints = {
-    scrap: '/media_toolkit{{ url_for("content_tools.scrap_url") }}',
-    apply: '/media_toolkit{{ url_for("content_tools.apply_prompt") }}',
-    archive: '/media_toolkit{{ url_for("content_tools.archive_list") }}',
-    text: '/media_toolkit{{ url_for("content_tools.archive_text", entry_id='ENTRY_ID') }}',
-    audio: '/media_toolkit{{ url_for("content_tools.archive_audio", entry_id='ENTRY_ID') }}',
+  // window.MEDIA_TOOLKIT_PREFIX = "/media_toolkit";
+
+  const prefix = window.MEDIA_TOOLKIT_PREFIX || '';
+  const joinPath = (path) => {
+    if (!path) return path;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    if (prefix && path.startsWith(prefix)) return path;
+    if (!path.startsWith('/')) path = `/${path}`;
+    return prefix ? `${prefix}${path}` : path;
   };
-  
-  console.log('endpoints endpoints endpoints endpoints ')
-  console.log(endpoints)
+
+  const endpoints = {
+    scrap: joinPath('{{ url_for("content_tools.scrap_url") }}'),
+    apply: joinPath('{{ url_for("content_tools.apply_prompt") }}'),
+    archive: joinPath('{{ url_for("content_tools.archive_list") }}'),
+    text: '{{ url_for("content_tools.archive_text", entry_id='ENTRY_ID') }}',
+    audio: '{{ url_for("content_tools.archive_audio", entry_id='ENTRY_ID') }}',
+  };
+
+  // console.log('endpoints', endpoints, 'prefix', prefix)
 
   function setStatus(message, isError = false) {
     statusBox.textContent = message || '';
@@ -228,11 +242,11 @@ V1.3
       const actions = document.createElement('div');
       actions.className = 'archive-actions';
 
-      const openBtn = document.createElement('button');
-      openBtn.className = 'btn-secondary';
-      openBtn.textContent = 'Otwórz';
-      openBtn.onclick = () => loadEntry(entry);
-      actions.appendChild(openBtn);
+      // const openBtn = document.createElement('button');
+      // openBtn.className = 'btn-secondary';
+      // openBtn.textContent = 'Otwórz';
+      // openBtn.onclick = () => loadEntry(entry);
+      // actions.appendChild(openBtn);
 
       if (entry.audio_url) {
         const playBtn = document.createElement('button');
@@ -270,7 +284,7 @@ V1.3
   }
 
   async function loadEntry(entry) {
-    const entryUrl = entry.text_url || endpoints.text.replace('ENTRY_ID', encodeURIComponent(entry.id));
+    const entryUrl = entry.text_url ? joinPath(entry.text_url) : joinPath(endpoints.text.replace('ENTRY_ID', encodeURIComponent(entry.id)));
     const data = await fetchJSON(entryUrl, { headers: { 'Accept': 'application/json' } });
     if (!data.ok) throw new Error(data.error || 'Nie udało się pobrać wpisu.');
     titleField.value = data.title || '';
@@ -288,39 +302,65 @@ V1.3
   }
 
   async function handleSubmit(evt, reuse = false) {
-    console.log(`AAAAAAAAAa ===> evt={evt}`);
     if (evt) evt.preventDefault();
-    console.log(`BBBBBBBBBBBBBB`)
+    // --- DODANE: wyłącz przycisk, który wywołał submit
+    const btn = evt.submitter || document.getElementById('mobileFetch');
+    const disableBtn = (el) => {
+      if (!el) return;
+      // zapamiętaj oryginalną etykietę
+      el.dataset._label = (el.tagName === 'INPUT') ? el.value : el.textContent;
+
+      if (el.tagName === 'A') {
+        el.classList.add('is-disabled');
+        el.setAttribute('aria-disabled','true');
+        el.style.pointerEvents = 'none';
+        el.textContent = 'Daj mi chwilę, pracuję...';
+      } else {
+        el.disabled = true;
+        if (el.tagName === 'INPUT') el.value = 'Daj mi chwilę, pracuję...';
+        else el.textContent = 'Daj mi chwilę, pracuję...';
+      }
+    };
+    const enableBtn = (el) => {
+      if (!el) return;
+      if (el.tagName === 'A') {
+        el.classList.remove('is-disabled');
+        el.removeAttribute('aria-disabled');
+        el.style.pointerEvents = '';
+        el.textContent = el.dataset._label || el.textContent;
+      } else {
+        el.disabled = false;
+        if (el.tagName === 'INPUT') el.value = el.dataset._label || el.value;
+        else el.textContent = el.dataset._label || el.textContent;
+      }
+      delete el.dataset._label;
+    };
+    disableBtn(btn);
+
     const url = urlInput.value.trim();
-    console.log(`CCCCCCCCCCCCCCCC`)
     const promptId = promptSelect.value.trim();
-    console.log(`DDDDDDDDDDD`)
     const wantsTts = !!ttsCheckbox?.checked;
 
-    console.log(`url:${url}`, `promptId:${promptId}`, `wantsTts:${wantsTts}`, )
+    // console.log(`url:${url}`, `promptId:${promptId}`, `wantsTts:${wantsTts}`, )
     if (!url) return setStatus('Podaj adres URL.', true);
     if (!promptId) return setStatus('Wybierz prompt.', true);
 
     try {
       if (audioEl) {
-        console.log('RRRRRRRRRR');
         audioEl.pause();
         audioEl.classList.add('hidden');
         audioEl.removeAttribute('src');
       }
 
       if (!reuse) {
-        console.log('1. SSSSSSSSSSSSS ', url);
         setStatus('Pobieram artykuł…');
         const scraped = await scrap(url);
-        console.log('2. SSSSSSSSSSSSS');
-        console.log(scraped);
         if (!scraped.ok) throw new Error(scraped.error || 'Nie udało się pobrać danych.');
         lastPayload = scraped.payload || {};
         titleField.value = lastPayload.title || '';
         textField.value = lastPayload.text || '';
       }
-      console.log('TTTTTTTTTTTTTTTT');
+      
       if (!lastPayload) throw new Error('Brak danych wejściowych.');
 
       setStatus('Generuję streszczenie…');
@@ -331,15 +371,15 @@ V1.3
         media: Array.isArray(lastPayload.media) ? lastPayload.media : [],
         language: 'pl'
       };
-      console.log('UUUUUUUUUUUUUUU');
+      // console.log(`applyPrompt(${promptId}, ${payload}, ${wantsTts})`);
       const result = await applyPrompt(promptId, payload, wantsTts);
-      console.log('WWWWWWWWWWWWWWWWWWWWW');
+      
       if (!result.ok) throw new Error(result.error || 'Błąd modelu');
 
       titleField.value = result.result_title || payload.title || '';
       textField.value = result.result_text || '';
       lastPayload = { title: titleField.value, text: textField.value };
-      console.log('ZZZZZZZZZZZZZZZZZZZZZ');
+      
       if (result.audio_base64) {
         playAudio(`data:audio/mp3;base64,${result.audio_base64}`);
       } else if (result.audio_url) {
@@ -355,13 +395,90 @@ V1.3
       await loadArchive();
 
     } catch (error) {
-      console.log('UUUUUAAAAAA Error:', error)
-      // console.error(error);
+      console.log('function handleSubmit Error:', error)
+      console.error(error);
       setStatus(error.message || 'Wystąpił błąd.', true);
     }
   }
 
   form.addEventListener('submit', evt => handleSubmit(evt, false));
+
+  // form.addEventListener('submit', async (evt) => {
+  //   evt.preventDefault();
+
+  //   // --- DODANE: wyłącz przycisk, który wywołał submit
+  //   const btn = evt.submitter || document.getElementById('mobileFetch');
+
+  //   const disableBtn = (el) => {
+  //     if (!el) return;
+  //     // zapamiętaj oryginalną etykietę
+  //     el.dataset._label = (el.tagName === 'INPUT') ? el.value : el.textContent;
+
+  //     if (el.tagName === 'A') {
+  //       el.classList.add('is-disabled');
+  //       el.setAttribute('aria-disabled','true');
+  //       el.style.pointerEvents = 'none';
+  //       el.textContent = 'Daj mi chwilę, pracuję...';
+  //     } else {
+  //       el.disabled = true;
+  //       if (el.tagName === 'INPUT') el.value = 'Daj mi chwilę, pracuję...';
+  //       else el.textContent = 'Daj mi chwilę, pracuję...';
+  //     }
+  //   };
+
+  //   const enableBtn = (el) => {
+  //     if (!el) return;
+  //     if (el.tagName === 'A') {
+  //       el.classList.remove('is-disabled');
+  //       el.removeAttribute('aria-disabled');
+  //       el.style.pointerEvents = '';
+  //       el.textContent = el.dataset._label || el.textContent;
+  //     } else {
+  //       el.disabled = false;
+  //       if (el.tagName === 'INPUT') el.value = el.dataset._label || el.value;
+  //       else el.textContent = el.dataset._label || el.textContent;
+  //     }
+  //     delete el.dataset._label;
+  //   };
+
+  //   disableBtn(btn);
+
+  //   try {
+  //     // --- Twój dotychczasowy kod wysyłki (fetch itd.) ---
+  //     let response;
+  //     if (mode === 'file') {
+  //       const fd = new FormData(form);
+  //       response = await fetch('/audiototext/upload', { method: 'POST', body: fd });
+  //     } else {
+  //       const payload = {
+  //         youtube_url: document.getElementById('youtube_url').value,
+  //         language_code: document.getElementById('language_code').value,
+  //         diarization_speaker_count: document.getElementById('diarization_speaker_count').value,
+  //         enable_word_time_offsets: document.getElementById('enable_word_time_offsets').checked,
+  //       };
+  //       response = await fetch('/audiototext/youtube/start', {
+  //         method: 'POST',
+  //         headers: { 'Content-Type': 'application/json' },
+  //         body: JSON.stringify(payload),
+  //       });
+  //     }
+
+  //     const data = await parseJsonSafe(response);
+  //     if (!data.ok) {
+  //       statusBox.textContent = data.error || 'Błąd';
+  //       return;
+  //     }
+  //     statusBox.textContent = 'Zadanie przyjęte. Sprawdzam status…';
+  //     pollStatus(data.status_url);
+
+  //   } catch (err) {
+  //     statusBox.textContent = `Błąd wysyłki: ${err.message}`;
+  //   } finally {
+  //     // Jeśli chcesz ponownie odblokować przycisk po starcie joba:
+  //     enableBtn(btn);
+  //   }
+  // });
+
   reuseBtn.addEventListener('click', evt => handleSubmit(evt, true));
 
   loadArchive().catch(err => console.warn(err));

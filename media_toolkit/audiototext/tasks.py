@@ -1,3 +1,4 @@
+# tasks.py - v1.2
 """Background job manager for audio transcription."""
 from __future__ import annotations
 
@@ -14,6 +15,7 @@ from typing import Any, Dict, List, Optional
 
 from ..loggers import audiototext_logger, logger
 from .google_stt import stt_google_from_file, stt_google_from_gcs
+from .gcs import A2T_GCS_BUCKET, upload_to_gcs
 
 RESULTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "results"))
 UPLOADS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads"))
@@ -21,6 +23,19 @@ JOBS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "jobs"))
 os.makedirs(RESULTS_DIR, exist_ok=True)
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 os.makedirs(JOBS_DIR, exist_ok=True)
+
+from google.cloud import storage  # NEW
+A2T_GCS_BUCKET = os.getenv("A2T_GCS_BUCKET")  # NEW
+
+def _upload_to_gcs_depr(local_path: str, prefix: str = "audiototext/") -> str:  # NEW
+    if not A2T_GCS_BUCKET:
+        raise RuntimeError("Brak env A2T_GCS_BUCKET – ustaw nazwę bucketu GCS.")
+    client = storage.Client()
+    ext = os.path.splitext(local_path)[1] or ".wav"
+    name = f"{prefix}{uuid.uuid4().hex}{ext}"
+    blob = client.bucket(A2T_GCS_BUCKET).blob(name)
+    blob.upload_from_filename(local_path)
+    return f"gs://{A2T_GCS_BUCKET}/{name}"
 
 
 @dataclass
@@ -178,6 +193,7 @@ class JobManager:
             return self.jobs.get(job_id)
 
     def _run(self):
+        gcs_bucket = os.getenv("A2T_GCS_BUCKET")
         while True:
             job: Job = self.q.get()
             try:
@@ -202,6 +218,9 @@ class JobManager:
                         job.file_path = dl_path
                         save_job_state(job)
                         src = job.file_path
+                        job.gcs_uri = upload_to_gcs(job.file_path, gcs_bucket)
+                        save_job_state(job)
+
                         logger(
                             "YouTube audio downloaded",
                             level="info",
@@ -227,6 +246,11 @@ class JobManager:
                 if diarization_speaker_count:
                     enable_word_time_offsets = True
 
+                # NEW: jeżeli mamy lokalny plik i brak GCS – wrzuć do GCS
+                if job.file_path and not job.gcs_uri:
+                    job.gcs_uri = upload_to_gcs(job.file_path, gcs_bucket)
+                    save_job_state(job)
+                    
                 if job.gcs_uri:
                     result = stt_google_from_gcs(
                         gcs_uri=job.gcs_uri,
@@ -295,7 +319,6 @@ def get_manager() -> JobManager:
         _manager = JobManager()
         _manager.start()
     return _manager
-
 
 __all__ = [
     "Job",

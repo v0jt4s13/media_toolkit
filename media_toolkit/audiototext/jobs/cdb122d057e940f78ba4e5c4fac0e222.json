@@ -1,0 +1,14 @@
+{
+  "job_id": "cdb122d057e940f78ba4e5c4fac0e222",
+  "file_path": "/home/vs/projects/ai/media_toolkit/media_toolkit/audiototext/uploads/qFE8P_FUDco.mp4",
+  "gcs_uri": "gs://audiototext_project_test/audiototext/1829d06e0bca4f749e0a7f69af28f91d.mp4",
+  "params": {
+    "language_code": "pl-PL",
+    "diarization_speaker_count": null,
+    "enable_word_time_offsets": false
+  },
+  "status": "error",
+  "result_path": null,
+  "error": "400 Invalid recognition 'config': bad encoding..",
+  "updated_at": 1759500113
+}

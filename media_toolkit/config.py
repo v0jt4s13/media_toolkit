@@ -1,3 +1,4 @@
+# config.py - v1.2
 """Configuration helpers for the Media Toolkit project."""
 from __future__ import annotations
 
@@ -48,6 +49,7 @@ def get_config(key: Optional[str] = None) -> Dict[str, Dict[str, str]]:
             "GOOGLE_CLOUD_PROJECT",
             "GCS_BUCKET",
             "GCS_PREFIX",
+            "A2T_GCS_BUCKET",
             "YTDLP_COOKIES_FILE",
             "YTDLP_COOKIES_FROM_BROWSER",
             "MEDIA_TOOLKIT_URL_PREFIX",

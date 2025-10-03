@@ -1,0 +1,14 @@
+{
+  "job_id": "dfff2d013e21408c84aead5d38d78ffb",
+  "file_path": "/home/vs/projects/ai/media_toolkit/media_toolkit/audiototext/uploads/KyicpY_p0iA.mp4",
+  "gcs_uri": "gs://audiototext_project_test/audiototext/aef04c5a50ac469eac0179866e27ca33.mp4",
+  "params": {
+    "language_code": "pl-PL",
+    "diarization_speaker_count": null,
+    "enable_word_time_offsets": false
+  },
+  "status": "error",
+  "result_path": null,
+  "error": "400 Invalid recognition 'config': bad encoding..",
+  "updated_at": 1759501079
+}

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Audio → Transkrypcja{% endblock %}
+{% block title %}Audio → Transkrypcja - v1.2{% endblock %}
 {% block header %}Audio → Transkrypcja{% endblock %}
 
 {% block extra_js %}
@@ -118,6 +118,141 @@
   const downloadLink = document.getElementById('downloadLink');
   const resultWrap = document.getElementById('result');
 
+  const audioFile = document.getElementById('audio_file');
+  const youtubeInput = document.getElementById('youtube_url');
+  const languageCode = document.getElementById('language_code');
+  const diarizationInput = document.getElementById('diarization_speaker_count');
+  const wordTimesCheckbox = document.getElementById('enable_word_time_offsets');
+
+  let mode = 'file';
+
+  function syncMode() {
+    if (mode === 'file') {
+      rowFile.classList.remove('hidden');
+      rowYoutube.classList.add('hidden');
+
+      // walidacja / wysyłka
+      audioFile.disabled = false;
+      audioFile.required = true;
+
+      youtubeInput.disabled = true;
+      youtubeInput.required = false;
+      youtubeInput.value = '';
+    } else {
+      rowFile.classList.add('hidden');
+      rowYoutube.classList.remove('hidden');
+
+      audioFile.disabled = true;        // wyłącza walidację i wysyłkę
+      audioFile.required = false;
+      audioFile.value = '';
+
+      youtubeInput.disabled = false;
+      youtubeInput.required = true;     // pozwala użyć pattern= na URL
+    }
+  }
+
+  modeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      modeBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      mode = btn.dataset.mode;
+      syncMode();
+    });
+  });
+
+  // Ustaw właściwe atrybuty na starcie (domyślnie "file")
+  syncMode();
+
+  async function pollStatus(url) {
+    try {
+      const res = await fetch(url);
+      const data = await parseJsonSafe(res);
+      if (!data.ok) {
+        statusBox.textContent = data.error || 'Błąd';
+        return;
+      }
+      statusBox.textContent = `Status: ${data.status}`;
+      if (data.status === 'done') {
+        if (data.result_download) {
+          downloadLink.href = data.result_download;
+          downloadLink.style.pointerEvents = 'auto';
+          downloadLink.style.opacity = 1;
+          resultWrap.classList.remove('hidden');
+
+          alert(data.result_download + '?raw=1');
+
+          const jsonRes = await fetch(data.result_download + '?raw=1');
+          const payload = await jsonRes.json();
+          transcriptBox.textContent = payload.result?.transcript || '(brak danych)';
+          transcriptWrap.classList.remove('hidden');
+        }
+      } else if (data.status === 'error') {
+        statusBox.textContent = `Błąd: ${data.error || 'unknown'}`;
+      } else {
+        setTimeout(() => pollStatus(url), 2500);
+      }
+    } catch (err) {
+      statusBox.textContent = `Błąd pobierania statusu: ${err.message}`;
+    }
+  }
+
+  form.addEventListener('submit', async (evt) => {
+    // UWAGA: natywna walidacja uruchamia się ZANIM wywoła się ten listener.
+    // Dlatego ważne jest poprawne ustawienie required/disabled w syncMode().
+    evt.preventDefault();
+    progress.classList.remove('hidden');
+    statusBox.textContent = 'Wysyłanie…';
+
+    try {
+      let response;
+      if (mode === 'file') {
+        const fd = new FormData(form);
+        response = await fetch('/audiototext/upload', {
+          method: 'POST',
+          body: fd,
+        });
+      } else {
+        const payload = {
+          youtube_url: youtubeInput.value,
+          language_code: languageCode.value,
+          diarization_speaker_count: diarizationInput.value,
+          enable_word_time_offsets: wordTimesCheckbox.checked,
+        };
+        console.log(payload);
+        response = await fetch('/audiototext/youtube/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      const data = await parseJsonSafe(response);
+      if (!data.ok) {
+        statusBox.textContent = data.error || 'Błąd';
+        return;
+      }
+
+      statusBox.textContent = 'Zadanie przyjęte. Sprawdzam status…';
+      pollStatus(data.status_url);
+    } catch (err) {
+      statusBox.textContent = `Błąd wysyłki: ${err.message}`;
+    }
+  });
+</script>
+
+<!-- 
+<script>
+  const modeBtns = document.querySelectorAll('.mode-btn');
+  const rowFile = document.getElementById('row_file');
+  const rowYoutube = document.getElementById('row_youtube');
+  const form = document.getElementById('uploadForm');
+  const progress = document.getElementById('progress');
+  const statusBox = document.getElementById('statusBox');
+  const transcriptWrap = document.getElementById('transcriptWrap');
+  const transcriptBox = document.getElementById('transcriptBox');
+  const downloadLink = document.getElementById('downloadLink');
+  const resultWrap = document.getElementById('result');
+
   let mode = 'file';
 
   modeBtns.forEach(btn => {
@@ -204,5 +339,7 @@
       statusBox.textContent = `Błąd wysyłki: ${err.message}`;
     }
   });
-</script>
+</script> -->
+
+
 {% endblock %}

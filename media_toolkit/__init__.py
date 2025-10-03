@@ -1,3 +1,4 @@
+# __init__.py - v1.2
 """Media Toolkit Flask application factory."""
 from __future__ import annotations
 
@@ -14,7 +15,7 @@ from .loggers import audiototext_routes_logger
 get_config()
 
 from .audiototext.routes import audiototext_bp  # noqa: E402  (import after config)
-from .content import content_bp  # noqa: E402
+from .content_tools.routes import content_bp  # noqa: E402
 
 _PACKAGE_ROOT = Path(__file__).resolve().parent
 _TEMPLATES_DIR = _PACKAGE_ROOT / "templates"

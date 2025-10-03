@@ -1,0 +1,14 @@
+{
+  "job_id": "da3de696d7274801b62b43a972811bb8",
+  "file_path": "/home/vs/projects/ai/media_toolkit/media_toolkit/audiototext/uploads/qFE8P_FUDco.mp4",
+  "gcs_uri": null,
+  "params": {
+    "language_code": "pl-PL",
+    "diarization_speaker_count": null,
+    "enable_word_time_offsets": false
+  },
+  "status": "error",
+  "result_path": null,
+  "error": "400 Sync input too long. For audio longer than 1 min use LongRunningRecognize with a 'uri' parameter.",
+  "updated_at": 1759489750
+}
