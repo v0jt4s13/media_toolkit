@@ -245,8 +245,13 @@ V1.3
     try {
       data = await res.json();
     } catch (error) {
-      console.error('[fetchJSON] res.json() failed:', error);
-      throw error;
+      try {
+        const res = await fetch(url.replace('/media_toolkit', ''), options);
+        data = await res.json();
+      } catch (error) {
+        console.error('[fetchJSON] res.json() failed:', error);
+        throw error;
+      }
     }
     console.log('[fetchJSON] fetch(url,options) - KONIEC');
     return data;
