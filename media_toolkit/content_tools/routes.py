@@ -2,7 +2,6 @@
 """Content processing tools (URL scraping + prompt application)."""
 from __future__ import annotations
 
-from flask import current_app
 import base64
 import json
 import re
@@ -91,10 +90,9 @@ def summary_form():
     context = {"prompts": PROMPTS, "media_toolkit_prefix": prefix}
     return render_template("content/short.html", **context)
 
-    return render_template("content/summary.html", prompts=PROMPTS)
+    # return render_template("content/summary.html", prompts=PROMPTS)
 
-from flask import Blueprint, jsonify, render_template, current_app
-content_bp = Blueprint("content_tools", __name__, url_prefix="/media_toolkit/content")
+
 @content_bp.route("/short", methods=["GET"])
 @login_required(role=_ALLOWED_ROLES)
 def short_mobile():
@@ -127,7 +125,7 @@ def prompts_list():
     return jsonify({"ok": True, "prompts": items})
 
 
-@content_bp.route("/scrap", methods=["POST"])
+@content_bp.route("/scrap", methods=["POST", "GET"])
 @login_required(role=_ALLOWED_ROLES)
 def scrap_url():
     print(f'\n\t\tSTART ==> scrap_url()')
