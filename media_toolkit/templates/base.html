@@ -93,9 +93,7 @@
     }
   </style>
   <script>
-    // window.MEDIA_TOOLKIT_PREFIX = "{\{ current_app.config.get('MEDIA_TOOLKIT_URL_PREFIX', '') \}}";
-    // window.MEDIA_TOOLKIT_PREFIX = "{{ media_toolkit_prefix }}";
-    window.MEDIA_TOOLKIT_PREFIX = "/media_toolkit";
+    window.MEDIA_TOOLKIT_PREFIX = {{ config.get('MEDIA_TOOLKIT_URL_PREFIX', '') | tojson }};
   </script>
   {% block extra_styles %}{% endblock %}
   {% block extra_js %}{% endblock %}
