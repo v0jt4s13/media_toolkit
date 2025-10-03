@@ -1,3 +1,28 @@
+# Python cache
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+venv/
+.env/
+.env.*
+**/.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE/editor configs
+.vscode/
+.idea/
+
+# Logs
+*.log
+logs/
+**/*.json
+**/*.txt
 
 # **/media_toolkit/__main__.py
 # **/media_toolkit/__init__.py
