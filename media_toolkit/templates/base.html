@@ -1,9 +1,23 @@
+{# templates/base.html — v1.4 #}
 <!DOCTYPE html>
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Media Toolkit{% endblock %} - v1.2</title>
+  <title>{% block title %}Media Toolkit{% endblock %}</title>
+  {# globalne style — opcjonalnie dostosuj do siebie #}
+  <style>
+    :root { color-scheme: light dark; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; background:#f3f4f6; color:#111827; }
+    header { position: sticky; top:0; z-index: 20; background:#0b3d91; color:#fff; padding:16px 20px; }
+    header h1 { margin:0; font-size: 1.15rem; }
+    main { max-width: 980px; margin: 20px auto; padding: 0 16px; }
+    footer { max-width: 980px; margin: 20px auto 40px; padding: 0 16px; color:#6b7280; font-size:.9rem; }
+    a { color: #0b3d91; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { max-width: 980px; margin: 0 auto; }
+  </style>
+
   <style>
     :root { color-scheme: dark light; }
     body {
@@ -92,6 +106,7 @@
       }
     }
   </style>
+
   <script>
     window.MEDIA_TOOLKIT_PREFIX = "/media_toolkit";
   </script>
@@ -99,6 +114,12 @@
   {% block extra_js %}{% endblock %}
 </head>
 <body>
+  <script>
+    // USTAWIENIA GLOBALNE DLA FRONTENDU
+    // Ważne: używamy 'config' (wstrzykiwany przez Flask), nie 'current_app'
+    window.MEDIA_TOOLKIT_PREFIX = {{ config.get('MEDIA_TOOLKIT_URL_PREFIX', '') | tojson }};
+  </script>
+
   <header>
     <h1>{% block header %}Media Toolkit{% endblock %}</h1>
     <span class="nav-toggle-indicator">☰</span>
@@ -111,13 +132,37 @@
     <a href="/media_toolkit/transkrypt">Transkrypcje — podgląd</a>
     <a href="/media_toolkit/logout">Wyloguj</a>
   </nav>
+
   <main>
     {% block content %}{% endblock %}
   </main>
   {% block scripts %}{% endblock %}
+  
   <footer>
     Media Toolkit &copy;
   </footer>
+
+  {# Skrypty wspólne #}
+  <script>
+    // Helper: bezpieczny parse JSON; spójny z tym, którego używasz w widokach
+    async function parseJsonSafe(res) {
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
+      const body = await res.text();
+      if (ct.includes('application/json')) {
+        try { return JSON.parse(body); } catch(e){}
+      }
+      const head = body.replace(/\s+/g,' ').slice(0, 200);
+      throw new Error(`HTTP ${res.status} ${res.statusText} — ${head}`);
+    }
+
+    // Helper: buduj URL-e API z prefixem; fallback bez prefixu zrobisz po stronie widoku
+    function apiUrl(path, usePrefix = true) {
+      const p = (window.MEDIA_TOOLKIT_PREFIX || '').replace(/\/+$/,'');
+      const clean = ('/' + String(path || '').replace(/^\/+/, '')).replace(/\/{2,}/g,'/');
+      return usePrefix && p ? (p + clean) : clean;
+    }
+  </script>
+
   <script>
     (function(){
       const header = document.querySelector('header');
@@ -157,5 +202,9 @@
       toggleNav(false);
     })();
   </script>
+
+
+  {# Miejsce na JS specyficzny dla podszablonów (np. short.html) #}
+
 </body>
 </html>
