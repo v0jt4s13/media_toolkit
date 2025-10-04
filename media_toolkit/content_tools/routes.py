@@ -164,19 +164,22 @@ def apply_prompt():
     audiototext_logger.info('EEEEEEEEEEE')
 
     prompt = get_prompt_by_id(prompt_id)
-    audiototext_logger.info('FFFFFFFFFFFF')
+    audiototext_logger.info(f'prompt prompt prompt \n{prompt}')
     if not prompt:
         return jsonify({"ok": False, "error": "Prompt not found"}), 404
-
+    audiototext_logger.info('FFFFFFFFFF')
     try:
         user_payload = json.dumps(data, ensure_ascii=False, indent=2)
+        audiototext_logger.info('GGGGGGGGGGGg')
     except Exception:
+        audiototext_logger.info('HHHHHHHHHH')
         user_payload = str(data)
 
     user_prompt = f"{prompt['user_prefix']}\n{user_payload}"
-
+    audiototext_logger.info('IIIIIIIIIII')
     try:
         result_text = ask_model_openai(prompt["system"], user_prompt)
+        audiototext_logger.info('JJJJJJJJ')
     except Exception as exc:  # pragma: no cover - model errors
         return jsonify({"ok": False, "error": str(exc)}), 500
 
