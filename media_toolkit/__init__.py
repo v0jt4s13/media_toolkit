@@ -91,7 +91,7 @@ def create_app(config_overrides: dict | None = None) -> Flask:
                     session["role"] = user_data["role"]
                     # audiototext_routes_logger.info(f'[create_app][login] user={user}; user_data["role"]={user_data["role"]}')
                 except Exception as err:
-                    # audiototext_routes_logger.info(f'[create_app][login] err: {err}')
+                    audiototext_routes_logger.info(f'[create_app][login] err: {err}')
 
                 prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
                 # audiototext_routes_logger.info(f'[create_app][login] prefix={prefix}')
