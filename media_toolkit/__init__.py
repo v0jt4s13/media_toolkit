@@ -22,7 +22,16 @@ _TEMPLATES_DIR = _PACKAGE_ROOT / "templates"
 _STATIC_DIR = _PACKAGE_ROOT / "static"
 _ALLOWED_ROLES = ["admin", "redakcja", "moderator", "tester", "fox"]
 
-
+class PrefixMiddleware:
+    def __init__(self, app): self.app = app
+    def __call__(self, env, start):
+        prefix = env.get('HTTP_X_SCRIPT_NAME') or env.get('HTTP_X_FORWARDED_PREFIX')
+        if prefix:
+            env['SCRIPT_NAME'] = prefix
+            if env['PATH_INFO'].startswith(prefix):
+                env['PATH_INFO'] = env['PATH_INFO'][len(prefix):]
+        return self.app(env, start)
+    
 def create_app(config_overrides: dict | None = None) -> Flask:
     app = Flask(
         "media_toolkit",
@@ -30,6 +39,8 @@ def create_app(config_overrides: dict | None = None) -> Flask:
         static_folder=str(_STATIC_DIR),
     )
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
+    app.wsgi_app = PrefixMiddleware(app.wsgi_app)
+    app.config.update(SESSION_COOKIE_PATH='/media_toolkit')
     app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
     app.secret_key = os.getenv("FLASK_SECRET_KEY", "change-me-why-you-ask")
 
