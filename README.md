@@ -121,6 +121,14 @@ Environment="MEDIA_TOOLKIT_URL_PREFIX=/media_toolkit"
 
 
 
+sudo systemctl edit gunicorn_media_toolkit.service
+Environment="MEDIA_TOOLKIT_URL_PREFIX="
+
+
+
+
+
+
 
 
 

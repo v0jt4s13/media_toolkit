@@ -55,26 +55,28 @@ def create_app(config_overrides: dict | None = None) -> Flask:
     @login_required(role=_ALLOWED_ROLES)
     def index():
         log_entry_access("/")
-        prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
-        audiototext_routes_logger.info(f'\n\t\tSTART ==> index() ==> prefix:{prefix}')
+        return redirect(url_for("content_tools.short_mobile"))
+        # prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
+        # audiototext_routes_logger.info(f'\n\t\tSTART ==> index() ==> prefix:{prefix}')
         
-        target = url_for("content_tools.short_mobile")
-        audiototext_routes_logger.info(f"[create_app] {prefix}{target}")
-        if prefix:
-            target = f"{prefix}{target}"
-        return redirect(target)
+        # target = url_for("content_tools.short_mobile")
+        # audiototext_routes_logger.info(f"[create_app] {prefix}{target}")
+        # if prefix:
+        #     target = f"{prefix}{target}"
+        # return redirect(target)
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
         audiototext_routes_logger.info(f'\n\t\tSTART ==> login()')
         log_entry_access("/login")
         if session.get("user"):
-            prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
-            target = url_for("content_tools.short_mobile")
-            audiototext_routes_logger.info(f"[create_app][login] {prefix}{target}")
-            if prefix:
-                target = f"{prefix}{target}"
-            return redirect(target)
+            # prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
+            # target = url_for("content_tools.short_mobile")
+            # audiototext_routes_logger.info(f"[create_app][login] {prefix}{target}")
+            # if prefix:
+            #     target = f"{prefix}{target}"
+            # return redirect(target)
+            return redirect(url_for("content_tools.short_mobile"))
 
         if request.method == "POST":
             user = request.form.get("username")
@@ -111,13 +113,14 @@ def create_app(config_overrides: dict | None = None) -> Flask:
         audiototext_routes_logger.info(f'\n\t\tSTART ==> logout()')
         session.pop("user", None)
         session.pop("role", None)
-        prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
-        target = url_for("login")
-        audiototext_routes_logger.info(f"[create_app][logout] {prefix}{target}")
-        if prefix:
-            target = f"{prefix}{target}"
-        return redirect(target)
-
+        # prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
+        # target = url_for("login")
+        # audiototext_routes_logger.info(f"[create_app][logout] {prefix}{target}")
+        # if prefix:
+        #     target = f"{prefix}{target}"
+        # return redirect(target)
+        return redirect(url_for("login"))
+    
     @app.route("/transkrypt", methods=["GET"])
     @login_required(role=_ALLOWED_ROLES)
     def transcripts_view():
@@ -148,6 +151,12 @@ def create_app(config_overrides: dict | None = None) -> Flask:
         app.config.update(config_overrides)
 
     return app
+
+app = create_app({"TESTING": True})
+rules = sorted(app.url_map.iter_rules(), key=lambda r: r.rule)
+for r in rules:
+    methods = ",".join(sorted(m for m in r.methods if m not in ("HEAD","OPTIONS")))
+    print(f"{r.rule:45s}  {methods:10s}  -> {r.endpoint}")
 
 
 __all__ = ["create_app"]

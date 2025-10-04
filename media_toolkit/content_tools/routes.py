@@ -85,7 +85,8 @@ def _with_prefix(path: Optional[str]) -> Optional[str]:
 @login_required(role=_ALLOWED_ROLES)
 def summary_form():
     """Render the simplified summary form."""
-    prefix = '/media_toolkit' #current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
+    # prefix = '/media_toolkit' #current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
+    prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
     print(f'prefix prefix ====> {prefix}')
     context = {"prompts": PROMPTS, "media_toolkit_prefix": prefix}
     return render_template("content/short.html", **context)
@@ -241,6 +242,10 @@ def archive_list():
     """Return metadata for the current user's stored summaries."""
     user_dir = _get_user_output_dir(create=False)
     entries: List[Dict[str, Any]] = []
+    
+    if not user_dir.exists():
+        return jsonify({"ok": True, "entries": entries})
+    
     if user_dir.exists():
         for json_path in sorted(user_dir.glob("*.json"), reverse=True):
             try:
