@@ -346,7 +346,24 @@
     setStatus(`Załadowano wpis ${fmt(data.created_at)}`);
   }
 
-  function playAudio(u) {
+  function playAudio(possibleDataUrlOrPath) {
+    if (possibleDataUrlOrPath.startsWith('data:')) {
+      // Bez fetcha – od razu do <audio>
+      audioEl.src = possibleDataUrlOrPath;
+      audioEl.play();
+      return;
+    }
+    // dotychczasowa ścieżka: pobieranie z serwera
+    fetch(possibleDataUrlOrPath, { credentials: 'include' })
+      .then(r => r.blob())
+      .then(b => {
+        audioEl.src = URL.createObjectURL(b);
+        audioEl.play();
+      });
+  }
+
+
+  function playAudio_depr(u) {
     if (!audioEl) return;
     audioEl.src = joinPath(u);
     audioEl.classList.remove('hidden');
