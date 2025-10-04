@@ -6,11 +6,14 @@ import os
 from functools import wraps
 from typing import Dict
 
-from flask import abort, redirect, request, session, url_for, has_request_context
+from flask import abort, redirect, request, session, url_for, has_request_context, current_app
 
 # logger = logging.getLogger("media_toolkit.auth")
 _ALWAYS_ALLOWED_ROLES = {"fox" "tester"}
 
+def _with_prefix(path: str) -> str:
+    prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
+    return f"{prefix}{path}" if prefix else path
 
 def build_users() -> Dict[str, Dict[str, str]]:
     """Return a mapping of allowed users loaded from environment variables."""
@@ -24,7 +27,6 @@ def build_users() -> Dict[str, Dict[str, str]]:
         "test": {"password": os.getenv("TEST_PASSWORD", "test"), "role": "tester"},
     }
 
-
 def login_required(redirect_to: str = "login", role=None):
     """Decorator ensuring the user is logged in and optionally has a required role."""
 
@@ -34,7 +36,8 @@ def login_required(redirect_to: str = "login", role=None):
             user = session.get("user")
             user_role = session.get("role")
             if not user:
-                return redirect(url_for(redirect_to))
+                return redirect(_with_prefix(url_for(redirect_to)))
+                        #  redirect(url_for(redirect_to))
 
             if role:
                 if isinstance(role, list):
