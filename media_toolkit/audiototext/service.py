@@ -1,4 +1,4 @@
-# service.py - v1.2
+# service.py - v1.5
 """Google Speech transcription service wrapper."""
 from __future__ import annotations
 

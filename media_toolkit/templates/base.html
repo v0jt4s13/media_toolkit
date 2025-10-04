@@ -1,11 +1,11 @@
-{# templates/base.html — v1.4 #}
+{# templates/base.html - v1.6 #}
 <!DOCTYPE html>
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Media Toolkit{% endblock %}</title>
-  {# globalne style — opcjonalnie dostosuj do siebie #}
+
   <style>
     :root { color-scheme: light dark; }
     body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; background:#f3f4f6; color:#111827; }
@@ -107,16 +107,12 @@
     }
   </style>
 
-  <script>
-    window.MEDIA_TOOLKIT_PREFIX = "/media_toolkit";
-  </script>
   {% block extra_styles %}{% endblock %}
   {% block extra_js %}{% endblock %}
 </head>
 <body>
   <script>
-    // USTAWIENIA GLOBALNE DLA FRONTENDU
-    // Ważne: używamy 'config' (wstrzykiwany przez Flask), nie 'current_app'
+    // Globalny prefix dla aplikacji — tylko z konfiguracji (bez wartości zakodowanej na stałe)
     window.MEDIA_TOOLKIT_PREFIX = {{ config.get('MEDIA_TOOLKIT_URL_PREFIX', '') | tojson }};
   </script>
 
@@ -125,12 +121,13 @@
     <span class="nav-toggle-indicator">☰</span>
   </header>
   <nav>
-    <p><a href="/media_toolkit/content/short">Streszczenie</a></p>
-    <a href="/audiototext/">Transkrypcje</a>
-    <a href="/audiototext/results/browser">Wyniki</a>
-    <!-- <a href="/media_toolkit/content/summary">Streszczenie</a> -->
-    <a href="/media_toolkit/transkrypt">Transkrypcje — podgląd</a>
-    <a href="/media_toolkit/logout">Wyloguj</a>
+    {# Wszystkie linki budowane z uwzględnieniem prefixu #}
+    {% set PFX = config.get('MEDIA_TOOLKIT_URL_PREFIX', '') %}
+    <a href="{{ PFX }}{{ url_for('content_tools.short_mobile') }}">Streszczenie</a>
+    <a href="{{ PFX }}{{ url_for('audiototext.upload_form') }}">Transkrypcje</a>
+    <a href="{{ PFX }}{{ url_for('audiototext.results_browser') }}">Wyniki</a>
+    <a href="{{ PFX }}{{ url_for('transcripts_view') }}">Transkrypcje — podgląd</a>
+    <a href="{{ PFX }}{{ url_for('logout') }}">Wyloguj</a>
   </nav>
 
   <main>
@@ -142,9 +139,8 @@
     Media Toolkit &copy;
   </footer>
 
-  {# Skrypty wspólne #}
   <script>
-    // Helper: bezpieczny parse JSON; spójny z tym, którego używasz w widokach
+    // Helper: bezpieczny parse JSON
     async function parseJsonSafe(res) {
       const ct = (res.headers.get('content-type') || '').toLowerCase();
       const body = await res.text();
@@ -154,8 +150,7 @@
       const head = body.replace(/\s+/g,' ').slice(0, 200);
       throw new Error(`HTTP ${res.status} ${res.statusText} — ${head}`);
     }
-
-    // Helper: buduj URL-e API z prefixem; fallback bez prefixu zrobisz po stronie widoku
+    // Helper: buduj URL-e API z prefixem
     function apiUrl(path, usePrefix = true) {
       const p = (window.MEDIA_TOOLKIT_PREFIX || '').replace(/\/+$/,'');
       const clean = ('/' + String(path || '').replace(/^\/+/, '')).replace(/\/{2,}/g,'/');
@@ -202,9 +197,5 @@
       toggleNav(false);
     })();
   </script>
-
-
-  {# Miejsce na JS specyficzny dla podszablonów (np. short.html) #}
-
 </body>
 </html>

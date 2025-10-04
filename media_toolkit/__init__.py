@@ -1,4 +1,4 @@
-# __init__.py - v1.2
+# __init__.py - v1.5
 """Media Toolkit Flask application factory."""
 from __future__ import annotations
 

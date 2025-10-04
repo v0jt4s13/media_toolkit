@@ -1,4 +1,4 @@
-# config.py - v1.2
+# config.py - v1.5
 """Configuration helpers for the Media Toolkit project."""
 from __future__ import annotations
 

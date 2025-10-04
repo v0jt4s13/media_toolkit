@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Streszczenie Mobile - v1.3{% endblock %}
+{% block title %}Streszczenie Mobile - v1.6{% endblock %}
 {% block header %}Streszczenie — Mobile{% endblock %}
 
 {% block extra_styles %}
@@ -92,9 +92,7 @@
     padding:14px;
     max-width:100%;
   }
-  .archive-actions a {
-    text-align: center;
-  }
+  .archive-actions a { text-align: center; }
   @media (min-width: 768px) {
     .mobile-wrap { max-width:640px; margin:0 auto; }
   }
@@ -103,14 +101,11 @@
 {% endblock %}
 
 {% block content %}
-V1.3
 <div class="mobile-wrap">
   <div class="panel">
     <h2>Streść artykuł z:</h2>
     <form id="mobileForm" novalidate>
-      <!-- <label for="mobile-url">Adres artykułu</label> -->
       <input id="mobile-url" type="url" placeholder="https://…" required>
-      <!-- <label for="mobile-prompt">Wybierz prompt</label> -->
       <select id="mobile-prompt" required>
         <option value="">— długość streszczenia —</option>
         {% for prompt in prompts %}
@@ -145,7 +140,6 @@ V1.3
 
 {% block scripts %}
 <script>
-
   const statusBox = document.getElementById('mobileStatus');
   const urlInput = document.getElementById('mobile-url');
   const promptSelect = document.getElementById('mobile-prompt');
@@ -198,8 +192,6 @@ V1.3
     delete el.dataset._label;
   }
 
-  // window.MEDIA_TOOLKIT_PREFIX = "/media_toolkit";
-
   const prefix = window.MEDIA_TOOLKIT_PREFIX || '';
   const joinPath = (path) => {
     if (!path) return path;
@@ -217,8 +209,6 @@ V1.3
     audio: '{{ url_for("content_tools.archive_audio", entry_id='ENTRY_ID') }}',
   };
 
-  // console.log('endpoints', endpoints, 'prefix', prefix)
-
   function setStatus(message, isError = false) {
     statusBox.textContent = message || '';
     statusBox.style.color = isError ? '#fca5a5' : '#93c5fd';
@@ -230,39 +220,55 @@ V1.3
     return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
   }
 
-  async function fetchJSON_depr(path, options) {
-    const url = api(path);
-    console.debug('[fetchJSON] ->', url, options);
-    const res = await fetch(url, options);
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    try { return await res.json(); } catch(e) { throw new Error('Invalid JSON'); }
-  }
-
+  // --- KLUCZOWA POPRAWKA: fallback bez prefixu przy odpowiedziach != 2xx (np. 404 za ELB/Nginx)
   async function fetchJSON(url, options) {
-    console.log(`[fetchJSON] fetch(url,options)`, url, options);
-    const res = await fetch(url, options);
-    let data;
-    try {
-      data = await res.json();
-    } catch (error) {
-      try {
-        const res = await fetch(url.replace('/media_toolkit', ''), options);
-        data = await res.json();
-      } catch (error) {
-        console.error('[fetchJSON] res.json() failed:', error);
-        throw error;
-      }
+    const doFetch = async (u, opt) => {
+      console.log(`[fetchJSON] fetch(url,options)`, u, opt);
+      const res = await fetch(u, opt);
+      return { res, u };
+    };
+
+    // 1. Próba z pełnym URL-em (z prefixem)
+    let attempt = await doFetch(url, options);
+    let { res } = attempt;
+
+    // 2. Jeśli nie OK, spróbuj bez /media_toolkit (rewrite może być już zrobiony po stronie Nginx)
+    if (!res.ok && url.startsWith('/media_toolkit/')) {
+      const noPrefix = url.replace(/^\/media_toolkit/, '');
+      attempt = await doFetch(noPrefix, options);
+      res = attempt.res;
     }
-    console.log('[fetchJSON] fetch(url,options) - KONIEC');
-    return data;
+
+    // 3. Odczyt JSON (lub błąd)
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`${res.status} ${res.statusText}${text ? ` — ${text.slice(0,160)}` : ''}`);
+    }
+
+    try {
+      return await res.json();
+    } catch (err) {
+      // Ostateczny fallback: spróbuj jeszcze bez prefixu, jeśli jeszcze nie próbowaliśmy
+      if (url.startsWith('/media_toolkit/')) {
+        try {
+          const alt = await fetch(url.replace(/^\/media_toolkit/, ''), options);
+          return await alt.json();
+        } catch (e) {
+          console.error('[fetchJSON] res.json() failed after alt:', e);
+          throw err;
+        }
+      }
+      console.error('[fetchJSON] res.json() failed:', err);
+      throw err;
+    }
   }
 
-  async function scrap(url) {
-    console.log(`[scrap] return fetchJSON(${endpoints.scrap}, url=${url})`)
+  async function scrap(u) {
+    console.log(`[scrap] return fetchJSON(${endpoints.scrap}, url=${u})`);
     return fetchJSON(endpoints.scrap, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ url: u }),
     });
   }
 
@@ -294,12 +300,6 @@ V1.3
       const actions = document.createElement('div');
       actions.className = 'archive-actions';
 
-      // const openBtn = document.createElement('button');
-      // openBtn.className = 'btn-secondary';
-      // openBtn.textContent = 'Otwórz';
-      // openBtn.onclick = () => loadEntry(entry);
-      // actions.appendChild(openBtn);
-
       if (entry.audio_url) {
         const playBtn = document.createElement('button');
         playBtn.className = 'btn-secondary';
@@ -310,7 +310,7 @@ V1.3
         const dl = document.createElement('a');
         dl.className = 'btn-secondary';
         dl.textContent = 'Pobierz audio';
-        dl.href = entry.audio_url;
+        dl.href = joinPath(entry.audio_url);
         dl.setAttribute('download', '');
         actions.appendChild(dl);
       }
@@ -318,7 +318,7 @@ V1.3
       const textLink = document.createElement('a');
       textLink.className = 'btn-secondary';
       textLink.textContent = 'Pobierz tekst';
-      textLink.href = entry.text_url || endpoints.text.replace('ENTRY_ID', encodeURIComponent(entry.id));
+      textLink.href = entry.text_url ? joinPath(entry.text_url) : joinPath(endpoints.text.replace('ENTRY_ID', encodeURIComponent(entry.id)));
       textLink.target = '_blank';
       actions.appendChild(textLink);
 
@@ -330,7 +330,7 @@ V1.3
   }
 
   async function loadArchive() {
-    const data = await fetchJSON(endpoints.archive);
+    const data = await fetchJSON(endpoints.archive, { headers: { 'Accept': 'application/json' } });
     if (!data.ok) throw new Error(data.error || 'Archiwum niedostępne');
     buildArchive(data.entries || []);
   }
@@ -346,56 +346,25 @@ V1.3
     setStatus(`Załadowano wpis ${fmt(data.created_at)}`);
   }
 
-  function playAudio(url) {
+  function playAudio(u) {
     if (!audioEl) return;
-    audioEl.src = url;
+    audioEl.src = joinPath(u);
     audioEl.classList.remove('hidden');
     audioEl.play().catch(err => console.warn('Nie można odtworzyć audio.', err));
   }
 
   async function handleSubmit(evt, reuse = false) {
     if (evt) evt.preventDefault();
-    // --- DODANE: wyłącz przycisk, który wywołał submit
-    const btn = evt.submitter || document.getElementById('mobileFetch');
-    const disableBtn = (el) => {
-      if (!el) return;
-      // zapamiętaj oryginalną etykietę
-      el.dataset._label = (el.tagName === 'INPUT') ? el.value : el.textContent;
 
-      if (el.tagName === 'A') {
-        el.classList.add('is-disabled');
-        el.setAttribute('aria-disabled','true');
-        el.style.pointerEvents = 'none';
-        el.textContent = 'Daj mi chwilę, pracuję...';
-      } else {
-        el.disabled = true;
-        if (el.tagName === 'INPUT') el.value = 'Daj mi chwilę, pracuję...';
-        else el.textContent = 'Daj mi chwilę, pracuję...';
-      }
-    };
-    const enableBtn = (el) => {
-      if (!el) return;
-      if (el.tagName === 'A') {
-        el.classList.remove('is-disabled');
-        el.removeAttribute('aria-disabled');
-        el.style.pointerEvents = '';
-        el.textContent = el.dataset._label || el.textContent;
-      } else {
-        el.disabled = false;
-        if (el.tagName === 'INPUT') el.value = el.dataset._label || el.value;
-        else el.textContent = el.dataset._label || el.textContent;
-      }
-      delete el.dataset._label;
-    };
+    const btn = evt.submitter || mobileFetch;
     disableBtn(btn);
 
-    const url = urlInput.value.trim();
+    const urlVal = urlInput.value.trim();
     const promptId = promptSelect.value.trim();
     const wantsTts = !!ttsCheckbox?.checked;
 
-    // console.log(`url:${url}`, `promptId:${promptId}`, `wantsTts:${wantsTts}`, )
-    if (!url) return setStatus('Podaj adres URL.', true);
-    if (!promptId) return setStatus('Wybierz prompt.', true);
+    if (!urlVal) { setStatus('Podaj adres URL.', true); enableBtn(btn); return; }
+    if (!promptId) { setStatus('Wybierz prompt.', true); enableBtn(btn); return; }
 
     try {
       if (audioEl) {
@@ -406,7 +375,7 @@ V1.3
 
       if (!reuse) {
         setStatus('Pobieram artykuł…');
-        const scraped = await scrap(url);
+        const scraped = await scrap(urlVal);
         if (!scraped.ok) throw new Error(scraped.error || 'Nie udało się pobrać danych.');
         lastPayload = scraped.payload || {};
         titleField.value = lastPayload.title || '';
@@ -417,15 +386,14 @@ V1.3
 
       setStatus('Generuję streszczenie…');
       const payload = {
-        source_url: url,
+        source_url: urlVal,
         title: lastPayload.title || '',
         text: lastPayload.text || '',
         media: Array.isArray(lastPayload.media) ? lastPayload.media : [],
         language: 'pl'
       };
-      // console.log(`applyPrompt(${promptId}, ${payload}, ${wantsTts})`);
+
       const result = await applyPrompt(promptId, payload, wantsTts);
-      
       if (!result.ok) throw new Error(result.error || 'Błąd modelu');
 
       titleField.value = result.result_title || payload.title || '';
@@ -447,174 +415,17 @@ V1.3
       await loadArchive();
 
     } catch (error) {
-      console.log('function handleSubmit Error:', error)
-      console.error(error);
+      console.error('function handleSubmit Error:', error);
       setStatus(error.message || 'Wystąpił błąd.', true);
+    } finally {
+      enableBtn(btn);
     }
   }
 
   form.addEventListener('submit', evt => handleSubmit(evt, false));
-
-  // form.addEventListener('submit', async (evt) => {
-  //   evt.preventDefault();
-
-  //   // --- DODANE: wyłącz przycisk, który wywołał submit
-  //   const btn = evt.submitter || document.getElementById('mobileFetch');
-
-  //   const disableBtn = (el) => {
-  //     if (!el) return;
-  //     // zapamiętaj oryginalną etykietę
-  //     el.dataset._label = (el.tagName === 'INPUT') ? el.value : el.textContent;
-
-  //     if (el.tagName === 'A') {
-  //       el.classList.add('is-disabled');
-  //       el.setAttribute('aria-disabled','true');
-  //       el.style.pointerEvents = 'none';
-  //       el.textContent = 'Daj mi chwilę, pracuję...';
-  //     } else {
-  //       el.disabled = true;
-  //       if (el.tagName === 'INPUT') el.value = 'Daj mi chwilę, pracuję...';
-  //       else el.textContent = 'Daj mi chwilę, pracuję...';
-  //     }
-  //   };
-
-  //   const enableBtn = (el) => {
-  //     if (!el) return;
-  //     if (el.tagName === 'A') {
-  //       el.classList.remove('is-disabled');
-  //       el.removeAttribute('aria-disabled');
-  //       el.style.pointerEvents = '';
-  //       el.textContent = el.dataset._label || el.textContent;
-  //     } else {
-  //       el.disabled = false;
-  //       if (el.tagName === 'INPUT') el.value = el.dataset._label || el.value;
-  //       else el.textContent = el.dataset._label || el.textContent;
-  //     }
-  //     delete el.dataset._label;
-  //   };
-
-  //   disableBtn(btn);
-
-  //   try {
-  //     // --- Twój dotychczasowy kod wysyłki (fetch itd.) ---
-  //     let response;
-  //     if (mode === 'file') {
-  //       const fd = new FormData(form);
-  //       response = await fetch('/audiototext/upload', { method: 'POST', body: fd });
-  //     } else {
-  //       const payload = {
-  //         youtube_url: document.getElementById('youtube_url').value,
-  //         language_code: document.getElementById('language_code').value,
-  //         diarization_speaker_count: document.getElementById('diarization_speaker_count').value,
-  //         enable_word_time_offsets: document.getElementById('enable_word_time_offsets').checked,
-  //       };
-  //       response = await fetch('/audiototext/youtube/start', {
-  //         method: 'POST',
-  //         headers: { 'Content-Type': 'application/json' },
-  //         body: JSON.stringify(payload),
-  //       });
-  //     }
-
-  //     const data = await parseJsonSafe(response);
-  //     if (!data.ok) {
-  //       statusBox.textContent = data.error || 'Błąd';
-  //       return;
-  //     }
-  //     statusBox.textContent = 'Zadanie przyjęte. Sprawdzam status…';
-  //     pollStatus(data.status_url);
-
-  //   } catch (err) {
-  //     statusBox.textContent = `Błąd wysyłki: ${err.message}`;
-  //   } finally {
-  //     // Jeśli chcesz ponownie odblokować przycisk po starcie joba:
-  //     enableBtn(btn);
-  //   }
-  // });
-
   reuseBtn.addEventListener('click', evt => handleSubmit(evt, true));
 
-  loadArchive().catch(err => console.warn(err));
+  // Start
+  loadArchive().catch(err => console.warn('loadArchive error:', err));
 </script>
-
-{% block extra_js %}
-<script>
-
-
-  // ===== core logic =====
-  function attachHandlers() {
-    const form = document.getElementById('shortForm');
-    const submitBtn = document.getElementById('submitBtn');
-    const reuseBtn  = document.getElementById('mobileReuse');
-    const sourceUrl = document.getElementById('sourceUrl');
-
-    const progress = document.getElementById('progress');
-    const statusBox = document.getElementById('statusBox');
-    const resultWrap = document.getElementById('resultWrap');
-    const resultBox = document.getElementById('resultBox');
-
-    const HEADER_OFFSET = 72; // dostosuj do wysokości sticky headera (jeśli masz)
-
-    async function handleSubmit(evt, reuse = false) {
-      if (evt) evt.preventDefault();
-
-      const btn = (evt && evt.submitter) || (reuse ? reuseBtn : submitBtn);
-      disableBtn(btn);
-
-      // pokaż status i przewiń do niego
-      progress.classList.remove('hidden');
-      statusBox.textContent = 'Wysyłanie…';
-      requestAnimationFrame(() => smoothScrollTo(progress, HEADER_OFFSET));
-
-      try {
-        const urlVal = sourceUrl.value.trim();
-        if (!urlVal && !reuse) {
-          throw new Error('Podaj adres URL.');
-        }
-
-        // Wywołanie endpointu scrap/summary
-        const payload = { url: urlVal };
-        const data = await fetchJSON('/content/scrap', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        // Zakładamy, że backend zwraca np. { ok: true, text: "..." } lub { ok:false, error:"..." }
-        if (!data || (data.ok === false)) {
-          throw new Error(data && data.error ? data.error : 'Błąd przetwarzania');
-        }
-
-        statusBox.textContent = 'Gotowe.';
-        resultBox.textContent = data.text || JSON.stringify(data, null, 2);
-        resultWrap.classList.remove('hidden');
-
-        // przewiń do wyników
-        requestAnimationFrame(() => smoothScrollTo(resultWrap, HEADER_OFFSET));
-      } catch (err) {
-        console.error('function handleSubmit Error:', err);
-        statusBox.textContent = `Błąd: ${err.message || err}`;
-        resultWrap.classList.add('hidden');
-      } finally {
-        // jeśli chcesz przycisk zostawić zablokowany — usuń poniższą linię
-        enableBtn(btn);
-      }
-    }
-
-    // Podpinanie handlerów (odporne)
-    if (form) form.addEventListener('submit', (evt) => handleSubmit(evt, false));
-    if (reuseBtn) {
-      reuseBtn.addEventListener('click', (evt) => handleSubmit(evt, true));
-    } else {
-      console.warn('[short] reuseBtn not found — listener not attached');
-    }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', attachHandlers);
-  } else {
-    attachHandlers();
-  }
-</script>
-{% endblock %}
-
 {% endblock %}

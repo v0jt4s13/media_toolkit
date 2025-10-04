@@ -1,4 +1,4 @@
-# google_stt.py - v1.2
+# google_stt.py - v1.5
 """High-level Google STT helpers with YouTube/GCS fallbacks."""
 from __future__ import annotations
 

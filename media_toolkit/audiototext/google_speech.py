@@ -1,4 +1,4 @@
-# google_speech.py - v1.2
+# google_speech.py - v1.5
 """Helpers for building Google Speech API requests."""
 from __future__ import annotations
 

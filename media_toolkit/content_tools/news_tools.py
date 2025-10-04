@@ -1,4 +1,4 @@
-# news_tools.py - v1.2
+# news_tools.py - v1.5
 """Utility functions reused across Media Toolkit content workflows."""
 from __future__ import annotations
 

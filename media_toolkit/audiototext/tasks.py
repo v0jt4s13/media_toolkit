@@ -1,4 +1,4 @@
-# tasks.py - v1.2
+# tasks.py - v1.5
 """Background job manager for audio transcription."""
 from __future__ import annotations
 
