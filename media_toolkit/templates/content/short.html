@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Streszczenie Mobile - v1.6{% endblock %}
-{% block header %}Streszczenie — Mobile{% endblock %}
+{% block title %}Streszczenie artykułu - v2.0 {% endblock %}
+{% block header %}Streszczenie artykułu{% endblock %}
 
 {% block extra_styles %}
 <style>
@@ -97,6 +97,25 @@
     .mobile-wrap { max-width:640px; margin:0 auto; }
   }
   a.button.is-disabled { opacity: .6; cursor: not-allowed; pointer-events: none; }
+  .row { margin-bottom: 16px; }
+  label { display:block; font-weight:600; margin-bottom:6px; }
+  input[type="file"], select, input[type="text"], input[type="url"] { width:100%; padding:10px; border:1px solid #ccc; border-radius:8px; }
+  button { padding:10px 16px; border:0; border-radius:10px; cursor:pointer; }
+  .primary { background:#0b3d91; color:white; }
+  .muted { color:#4b5563; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .status { padding:12px; border-radius:10px; background:#111827; color:#d1d5db; }
+  .hidden { display:none; }
+  a.button { text-decoration:none; display:inline-block; }
+  .transcript { white-space: pre-wrap; padding: 12px; background: #111827; color:#f3f4f6; border: 1px solid #e5e7eb; border-radius: 10px; min-height: 80px; }
+  .mode-btn { padding:8px 12px; border:1px solid #d1d5db; background:#f9fafb; cursor:pointer; border-radius:8px 8px 0 0; }
+  .mode-btn.active { background: #0b3d91; color:white; border-color:#0b3d91; }
+  #uploadForm { border: 2px solid #0b3d91; padding: 16px; border-radius: 0 16px 16px 16px; background:#f9fafb; }
+  .inline { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .xs { font-size: .85rem; }
+  div#result { margin: 0.9em; width: 90%; text-align: right; }
+  a#downloadLink { padding: 8px; }
+
 </style>
 {% endblock %}
 

@@ -1,0 +1,178 @@
+{# templates/base.html - v2.1.1 (theme-synced + global toggle) #}
+<!DOCTYPE html>
+<html lang="pl" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Media Toolkit{% endblock %}</title>
+
+  <style>
+    /* ==========================================================
+       THEME TOKENS (global)
+       ========================================================== */
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f7fb;
+      --bg-elev: #ffffff;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --border: rgba(2, 6, 23, 0.08);
+      --shadow: 0 10px 30px rgba(2, 6, 23, 0.08);
+      --focus: #22d3ee;
+      --brand-1: #0b3d91;
+      --brand-2: #2563eb;
+      --container-w: 980px;
+      --radius-lg: 20px;
+    }
+    :root[data-theme="dark"] {
+      --bg: #030712;
+      --bg-elev: rgba(15,23,42,0.9);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --border: rgba(148,163,184,0.2);
+      --shadow: 0 24px 48px rgba(2,6,23,0.6);
+      --focus: #38bdf8;
+      --brand-1: #0ea5e9;
+      --brand-2: #7c3aed;
+    }
+
+    html, body { height: 100%; }
+    body { margin: 0; font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica Neue,Arial,Noto Sans,Apple Color Emoji,Segoe UI Emoji; background: var(--bg); color: var(--text); }
+    a { color: var(--brand-1); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { max-width: var(--container-w); margin: 0 auto; }
+
+    /* Header & Nav */
+    header {
+      position: sticky; top: 0; z-index: 20;
+      background: linear-gradient(135deg, var(--brand-1), #111827 85%);
+      color: #f8fafc;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between; gap: .75rem;
+    }
+    header h1 { margin: 0; font-size: clamp(1.1rem, 2vw, 1.45rem); letter-spacing: .01em; }
+    .header-actions { display: flex; align-items: center; gap: .5rem; }
+
+    /* Global theme toggle button */
+    .btn-ghost { border: 1px solid var(--border); background: transparent; color: #f8fafc; border-radius: 12px; padding: 8px 10px; cursor: pointer; }
+    .btn-ghost:focus { outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--focus), transparent 70%); }
+
+    .nav-toggle-indicator { font-size: 1.4rem; line-height: 1; cursor: pointer; }
+
+    nav { display: none; flex-direction: column; gap: 1.1rem; padding: 1.2rem; background: rgba(10,24,52,0.96); position: absolute; top: 100%; left: 0; right: 0; box-shadow: 0 28px 48px rgba(2,6,23,0.5); border-bottom-left-radius: 28px; border-bottom-right-radius: 28px; backdrop-filter: blur(14px); z-index: 15; }
+    nav.open { display: flex; position: relative; }
+    nav a { display: block; color: #f8fafc; font-weight: 600; font-size: 1.02rem; padding: .85rem 1rem; border-radius: 16px; background: rgba(30,41,59,0.65); box-shadow: inset 0 0 0 1px rgba(148,163,184,0.25); transition: transform .18s ease, background .18s ease; }
+    nav a:hover { background: rgba(59,130,246,0.32); transform: translateY(-1px); }
+    nav a:active { transform: scale(0.98); }
+
+    @media (min-width: 768px) {
+      .nav-toggle-indicator { display: none; }
+      nav { position: static; display: flex !important; flex-direction: row; background: #0f172a; border-radius: 0; box-shadow: none; gap: 1rem; padding: .7rem 1.4rem; }
+      nav a { padding: .6rem .9rem; border-radius: 12px; font-size: .95rem; }
+    }
+
+    main { padding: clamp(1rem, 2vw, 1.4rem); min-height: calc(100vh - 160px); background: linear-gradient(180deg, color-mix(in oklab, var(--bg), #0f172a 8%) 0%, color-mix(in oklab, var(--bg), #020617 24%) 100%); }
+    footer { padding: 1rem 2rem; background: linear-gradient(135deg, var(--brand-1), #111827 85%); color: #f8fafc; text-align: center; }
+  </style>
+
+  {% block extra_styles %}{% endblock %}
+  {% block extra_js %}{% endblock %}
+</head>
+<body>
+  <script>
+    // Global prefix (from config only)
+    window.MEDIA_TOOLKIT_PREFIX = {{ config.get('MEDIA_TOOLKIT_URL_PREFIX', '') | tojson }};
+
+    // Theme bootstrap (no flash)
+    (function themeBootstrap(){
+      try {
+        const KEY = 'mtk-theme';
+        const saved = localStorage.getItem(KEY);
+        const prefersDark = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = saved || (prefersDark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch(_){}
+    })();
+  </script>
+
+  <header>
+    <h1>{% block header %}Media Toolkit{% endblock %}</h1>
+    <div class="header-actions">
+      <button id="globalThemeToggle" class="btn-ghost" aria-pressed="false" title="Przełącz motyw">🌓</button>
+      <span class="nav-toggle-indicator" aria-hidden="true">☰</span>
+    </div>
+  </header>
+
+  <nav>
+    {% set PFX = config.get('MEDIA_TOOLKIT_URL_PREFIX', '') %}
+    <a href="{{ PFX }}{{ url_for('content_tools.short_mobile') }}">Streszczenie</a>
+    <a href="{{ PFX }}{{ url_for('audiototext.upload_form') }}">Transkrypcje</a>
+    <a href="{{ PFX }}{{ url_for('audiototext.results_browser') }}">Wyniki</a>
+    <a href="{{ PFX }}{{ url_for('transcripts_view') }}">Transkrypcje — podgląd</a>
+    <a href="{{ PFX }}{{ url_for('logout') }}">Wyloguj</a>
+  </nav>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+  {% block scripts %}{% endblock %}
+
+  <footer>Media Toolkit &copy;</footer>
+
+  <script>
+    // Utils
+    function apiUrl(path, usePrefix = true) {
+      const p = (window.MEDIA_TOOLKIT_PREFIX || '').replace(/\/+$/,'');
+      const clean = ('/' + String(path || '').replace(/^\/+/, '')).replace(/\/{2,}/g,'/');
+      return usePrefix && p ? (p + clean) : clean;
+    }
+  </script>
+
+  <script>
+    // NAV interaction + GLOBAL THEME TOGGLE
+    (function(){
+      const header = document.querySelector('header');
+      const nav = document.querySelector('nav');
+      const indicator = document.querySelector('.nav-toggle-indicator');
+      const themeBtn = document.getElementById('globalThemeToggle');
+
+      const isDesktop = () => window.matchMedia('(min-width: 768px)').matches;
+      const toggleNav = (force) => {
+        const desired = typeof force === 'boolean' ? force : !nav.classList.contains('open');
+        if (isDesktop()) { nav.classList.add('open'); if (indicator) indicator.textContent = '☰'; return; }
+        nav.classList.toggle('open', desired);
+        if (indicator) indicator.textContent = desired ? '✕' : '☰';
+      };
+
+      if (header && nav) {
+        header.addEventListener('click', (evt) => {
+          if (evt.target.closest('a') || evt.target === themeBtn) return;
+          if (isDesktop()) return;
+          evt.preventDefault();
+          toggleNav();
+        });
+
+        nav.querySelectorAll('a').forEach(link => link.addEventListener('click', () => toggleNav(false)));
+        document.addEventListener('click', (evt) => { if (isDesktop()) return; if (!nav.contains(evt.target) && !header.contains(evt.target)) toggleNav(false); });
+        window.addEventListener('resize', () => toggleNav(false));
+        toggleNav(false);
+      }
+
+      // Global theme toggle
+      const KEY = 'mtk-theme';
+      function apply(t){ document.documentElement.setAttribute('data-theme', t); themeBtn.setAttribute('aria-pressed', String(t === 'dark')); }
+      try {
+        const saved = localStorage.getItem(KEY);
+        const effective = saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        apply(effective);
+        themeBtn.addEventListener('click', () => {
+          const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+          apply(next);
+          localStorage.setItem(KEY, next);
+        });
+      } catch(_){}
+    })();
+  </script>
+</body>
+</html>

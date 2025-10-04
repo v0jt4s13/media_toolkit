@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Audio → Transkrypcja - v1.5{% endblock %}
+{% block title %}Audio → Transkrypcja - v2 {% endblock %}
 {% block header %}Audio → Transkrypcja{% endblock %}
 
 {% block extra_js %}
@@ -18,79 +18,185 @@
 {% endblock %}
 
 {% block content %}
+
+{% block extra_styles %}
 <style>
-  .transcription-card { padding: 24px; border: 1px solid #d1d5db; border-radius: 16px; background: white; }
+  *, *::before, *::after { box-sizing: border-box; }
+  body { background:#030712; color:#e2e8f0; }
+  main { padding:0; }
+  .mobile-wrap {
+    min-height: calc(100vh - 140px);
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+    padding:24px 16px 40px;
+    background:linear-gradient(180deg,#0f172a 0%,#030712 100%);
+  }
+  .panel {
+    background: rgba(15,23,42,0.9);
+    border: 1px solid rgba(148,163,184,0.2);
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: 0 24px 48px rgba(2,6,23,0.6);
+    backdrop-filter: blur(12px);
+    width: 100%;
+    max-width: 100%;
+  }
+  .panel h2 { margin:0 0 12px; font-size:1.5rem; font-weight:700; }
+  label { font-size:1rem; font-weight:600; margin-bottom:6px; display:block; }
+  form { display:flex; flex-direction:column; gap:18px; }
+  input[type="url"], select, textarea {
+    width:100%;
+    max-width:100%;
+    border:none;
+    border-radius:18px;
+    padding:16px 18px;
+    font-size:1.05rem;
+    background:rgba(30,41,59,0.85);
+    color:#f8fafc;
+    box-shadow: inset 0 0 0 1px rgba(148,163,184,0.2);
+    box-sizing:border-box;
+  }
+  textarea { min-height:180px; resize:vertical; }
+  button {
+    width:100%;
+    max-width:100%;
+    border:none;
+    border-radius:18px;
+    padding:18px;
+    font-size:1.1rem;
+    font-weight:700;
+    letter-spacing:0.02em;
+    cursor:pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-primary { background:linear-gradient(135deg,#0ea5e9,#7c3aed); color:#f8fafc; }
+  .btn-secondary { background:rgba(30,41,59,0.7); color:#e2e8f0; }
+  button:active { transform:scale(0.98); box-shadow:0 8px 16px rgba(15,23,42,0.5); }
+  .toggle-row { 
+    display:flex; 
+    align-items:center; 
+    gap:12px; 
+    margin-top:10px; 
+    justify-content: flex-end;
+    margin: 20px 5px;
+  }
+  .toggle-row input { width:auto; accent-color:#38bdf8; transform:scale(1.4); }
+  .status { font-size:0.95rem; min-height:1.4em; margin:12px 0; color:#93c5fd; }
+  .result { display:flex; flex-direction:column; gap:14px; }
+  .result textarea { min-height:220px; }
+  audio {
+    width:100%;
+    border-radius:16px;
+    background:#1e293b;
+    margin-top:8px;
+  }
+  .archive { display:flex; flex-direction:column; gap:18px; }
+  .archive-item {
+    border-radius:20px;
+    padding:16px;
+    background:rgba(15,23,42,0.75);
+    box-shadow:0 12px 24px rgba(2,6,23,0.4);
+  }
+  .archive-meta { color:#94a3b8; font-size:0.9rem; }
+  .archive-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; }
+  .archive-actions a,
+  .archive-actions button {
+    flex:1 1 32%;
+    font-size:0.95rem;
+    border-radius:16px;
+    padding:14px;
+    max-width:100%;
+  }
+  .archive-actions a { text-align: center; }
+  @media (min-width: 768px) {
+    .mobile-wrap { max-width:640px; margin:0 auto; }
+  }
+  a.button.is-disabled { opacity: .6; cursor: not-allowed; pointer-events: none; }
+
+  /* .transcription-card { 
+    padding: 24px; 
+    border: 1px solid #d1d5db; 
+    border-radius: 16px; 
+  } */
   .row { margin-bottom: 16px; }
   label { display:block; font-weight:600; margin-bottom:6px; }
   input[type="file"], select, input[type="text"], input[type="url"] { width:100%; padding:10px; border:1px solid #ccc; border-radius:8px; }
   button { padding:10px 16px; border:0; border-radius:10px; cursor:pointer; }
   .primary { background:#0b3d91; color:white; }
-  .muted { color:#4b5563; }
+  .muted { 
+    color:#4b5563; 
+    font-size: smaller;
+  }
   .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
   .status { padding:12px; border-radius:10px; background:#111827; color:#d1d5db; }
   .hidden { display:none; }
   a.button { text-decoration:none; display:inline-block; }
   .transcript { white-space: pre-wrap; padding: 12px; background: #111827; color:#f3f4f6; border: 1px solid #e5e7eb; border-radius: 10px; min-height: 80px; }
-  .mode-switch { display:flex; gap:0; margin-bottom:16px; }
-  .mode-btn { padding:8px 12px; border:1px solid #d1d5db; background:#f9fafb; cursor:pointer; border-radius:8px 8px 0 0; }
-  .mode-btn.active { background: #0b3d91; color:white; border-color:#0b3d91; }
+  .mode-btn.active { background: #0b3d91; font-size: larger; padding:8px 12px; border:1px solid #d1d5db; cursor:pointer; border-radius:8px 8px 0 0; }
+  .mode-btn { background: rgba(61, 88, 186, 0.244); color:white; border-color:#0b3d91; font-size: smaller; }
+
   #uploadForm { border: 2px solid #0b3d91; padding: 16px; border-radius: 0 16px 16px 16px; background:#f9fafb; }
   .inline { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
   .xs { font-size: .85rem; }
   div#result { margin: 0.9em; width: 90%; text-align: right; }
   a#downloadLink { padding: 8px; }
 </style>
+{% endblock %}
 
-<div class="transcription-card">
-  <h1>Transkrypcja audio / YouTube</h1>
-  <p class="muted">
-    Plik lub audio z YouTube zostanie przetworzone w tle.<br>
-    <a href="/audiototext/results/browser" target="_blank">Wyniki transkrypcji</a>
-    ·
-    <a href="/audiototext/selftest" target="_blank" class="xs">GCS selftest</a>
-    ·
-    <a href="/audiototext/gcstest" target="_blank" class="xs">GCS diagnostyka</a>
-  </p>
 
-  <div class="mode-switch">
-    <button type="button" class="mode-btn active" data-mode="file">Wgraj plik</button>
-    <button type="button" class="mode-btn" data-mode="youtube">YouTube URL</button>
-  </div>
-
-  <form id="uploadForm">
-    <div id="row_file" class="row">
-      <label for="audio_file">Plik audio</label>
-      <input type="file" id="audio_file" name="audio_file" accept="audio/*,video/mp4,video/x-m4v,video/*" required>
-      <div class="muted xs" style="margin-top:6px;">Obsługiwane m.in.: .mp3, .m4a, .wav, .mp4 (audio)</div>
+<div class="mobile-wrap">
+  <div class="panel">
+    <h2>YouTube/Audio Transkrypcja</h2>
+    <p class="muted">
+      Plik lub YouTube url zostanie przetworzone w tle.<br>
+      <a href="/audiototext/results/browser" target="_blank">Wyniki transkrypcji</a>
+      ·
+      <a href="/audiototext/selftest" target="_blank" class="xs">selftest</a>
+      ·
+      <a href="/audiototext/gcstest" target="_blank" class="xs">diagnostyka</a>
+    </p>
+  
+    <div class="mode-switch">
+      <button type="button" class="mode-btn active" data-mode="file">Wgraj plik</button>
+      <button type="button" class="mode-btn" data-mode="youtube">YouTube URL</button>
     </div>
 
-    <div id="row_youtube" class="row hidden">
-      <label for="youtube_url">Adres URL filmu YouTube</label>
-      <input type="url" id="youtube_url" name="youtube_url" placeholder="https://youtu.be/..." pattern="https?://.*">
-      <div class="muted xs" style="margin-top:6px;">Audio zostanie pobrane przez yt-dlp i przetworzone w tle.</div>
-    </div>
-
-    <div class="row">
-      <label for="language_code">Język rozpoznawania</label>
-      <select id="language_code" name="language_code">
-        <option value="pl-PL" selected>pl-PL (polski)</option>
-        <option value="en-US">en-US (angielski USA)</option>
-        <option value="uk-UA">uk-UA (ukraiński)</option>
-      </select>
-    </div>
-
-    <div class="row inline">
-      <div style="flex:1; min-width:220px;">
-        <label for="diarization_speaker_count">Liczba mówców (opcjonalnie)</label>
-        <input type="text" id="diarization_speaker_count" name="diarization_speaker_count" placeholder="np. 2">
+    <form id="uploadForm">
+      <div id="row_file" class="row">
+        <label for="audio_file">Plik audio</label>
+        <input type="file" id="audio_file" name="audio_file" accept="audio/*,video/mp4,video/x-m4v,video/*" required>
+        <div class="muted xs" style="margin-top:6px;">Obsługiwane m.in.: .mp3, .m4a, .wav, .mp4 (audio)</div>
       </div>
-      <label class="inline" style="gap:6px; margin-top: 22px;">
-        <input type="checkbox" id="enable_word_time_offsets" name="enable_word_time_offsets"> Zwróć czasy słów
-      </label>
-    </div>
 
-    <button type="submit" id="submitBtn" class="primary">Wyślij</button>
-  </form>
+      <div id="row_youtube" class="row hidden">
+        <label for="youtube_url">Adres URL filmu YouTube</label>
+        <input type="url" id="youtube_url" name="youtube_url" placeholder="https://youtu.be/..." pattern="https?://.*">
+        <div class="muted xs" style="margin-top:6px;">Audio zostanie pobrane przez yt-dlp i przetworzone w tle.</div>
+      </div>
+
+      <div class="row">
+        <label for="language_code">Język rozpoznawania</label>
+        <select id="language_code" name="language_code">
+          <option value="pl-PL" selected>pl-PL (polski)</option>
+          <option value="en-US">en-US (angielski USA)</option>
+          <option value="uk-UA">uk-UA (ukraiński)</option>
+        </select>
+      </div>
+
+      <div class="row inline">
+        <div style="flex:1; min-width:220px;">
+          <label for="diarization_speaker_count">Liczba mówców (opcjonalnie)</label>
+          <input type="text" id="diarization_speaker_count" name="diarization_speaker_count" placeholder="np. 2">
+        </div>
+        <label class="inline" style="gap:6px; margin-top: 22px;">
+          <input type="checkbox" id="enable_word_time_offsets" name="enable_word_time_offsets"> Zwróć czasy słów
+        </label>
+      </div>
+
+      <button type="submit" id="submitBtn" class="primary">Wyślij</button>
+    </form>
+  </div>
 
   <div id="progress" class="row hidden">
     <h2>Status</h2>

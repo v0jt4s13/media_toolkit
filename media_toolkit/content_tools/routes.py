@@ -103,9 +103,13 @@ def short_mobile():
 
         # prefix = '/media_toolkit' #current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
         prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
-        print(f'prefix prefix ====> {prefix}')
+        print(f'prefix prefix ====> {prefix} \n{request.args}')
         context = {"prompts": PROMPTS, "media_toolkit_prefix": prefix}
-        return render_template("content/short.html", **context)
+
+        if request.args.get('version') == '2':
+            return render_template("content/short-v2.html", **context)
+        else:
+            return render_template("content/short.html", **context)
 
 
 # @content_bp.route("/short", methods=["GET"])

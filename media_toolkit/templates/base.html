@@ -1,4 +1,4 @@
-{# templates/base.html - v1.6 #}
+{# templates/base.html - v2.0 #}
 <!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -7,7 +7,7 @@
   <title>{% block title %}Media Toolkit{% endblock %}</title>
 
   <style>
-    :root { color-scheme: light dark; }
+    :root { color-scheme: dark light; }
     body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; background:#f3f4f6; color:#111827; }
     header { position: sticky; top:0; z-index: 20; background:#0b3d91; color:#fff; padding:16px 20px; }
     header h1 { margin:0; font-size: 1.15rem; }
@@ -16,16 +16,7 @@
     a { color: #0b3d91; text-decoration: none; }
     a:hover { text-decoration: underline; }
     .container { max-width: 980px; margin: 0 auto; }
-  </style>
 
-  <style>
-    :root { color-scheme: dark light; }
-    body {
-      font-family: "Inter", system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-      margin: 0;
-      background: #020617;
-      color: #e2e8f0;
-    }
     header {
       background: linear-gradient(135deg, #0b3d91 0%, #111827 85%);
       color: #f8fafc;
@@ -39,6 +30,8 @@
       z-index:20;
     }
     header h1 { margin:0; font-size:1.6rem; letter-spacing:0.01em; }
+
+
     .nav-toggle-indicator {
       font-size:1.6rem;
       transition: transform 0.2s ease;
@@ -75,11 +68,21 @@
     }
     nav a:active { transform:scale(0.98); }
     nav a:hover { background:rgba(59,130,246,0.32); transform:translateY(-1px); }
+
+
     main {
       padding: clamp(1.4rem, 2vw, 2rem);
       min-height:calc(100vh - 160px);
       background: linear-gradient(180deg, rgba(15,23,42,0.65) 0%, rgba(2,6,23,0.92) 100%);
     }
+    .mode-switch { 
+      display:flex; 
+      gap:0; 
+      margin-bottom:16px; 
+    }
+
+
+
     footer {
       padding:1rem 2rem;
       background:#0b3d91;
