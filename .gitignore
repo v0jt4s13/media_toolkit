@@ -23,7 +23,7 @@ Thumbs.db
 logs/
 **/*.json
 **/*.txt
-
+**/upload
 # **/media_toolkit/__main__.py
 # **/media_toolkit/__init__.py
 **/media_toolkit/logs
