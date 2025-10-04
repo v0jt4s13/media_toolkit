@@ -82,26 +82,26 @@ def create_app(config_overrides: dict | None = None) -> Flask:
             user = request.form.get("username")
             pwd = request.form.get("password")
             user_data = users.get(user)
-            audiototext_routes_logger.info(f'Proba logowania: {user_data} <===> {users}\n if user_data and {user_data["password"]} == {pwd}')
+            # audiototext_routes_logger.info(f'Proba logowania: {user_data} <===> {users}\n if user_data and {user_data["password"]} == {pwd}')
 
             if user_data and user_data["password"] == pwd:
 
                 try:
                     session["user"] = user
                     session["role"] = user_data["role"]
-                    audiototext_routes_logger.info(f'[create_app][login] user={user}; user_data["role"]={user_data["role"]}')
+                    # audiototext_routes_logger.info(f'[create_app][login] user={user}; user_data["role"]={user_data["role"]}')
                 except Exception as err:
-                    audiototext_routes_logger.info(f'[create_app][login] err: {err}')
+                    # audiototext_routes_logger.info(f'[create_app][login] err: {err}')
 
                 prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
-                audiototext_routes_logger.info(f'[create_app][login] prefix={prefix}')
+                # audiototext_routes_logger.info(f'[create_app][login] prefix={prefix}')
                 target = url_for("content_tools.short_mobile")
-                audiototext_routes_logger.info(f'[create_app][login] target={target}')
+                # audiototext_routes_logger.info(f'[create_app][login] target={target}')
 
-                audiototext_routes_logger.info(f"[create_app][login] {prefix}{target}")
+                # audiototext_routes_logger.info(f"[create_app][login] {prefix}{target}")
                 if prefix:
                     target = f"{prefix}{target}"
-                    audiototext_routes_logger.info(f"{prefix}{target}")
+                    # audiototext_routes_logger.info(f"{prefix}{target}")
                 return redirect(target)
             return render_template("login.html", error="Nieprawidłowe dane logowania")
 
