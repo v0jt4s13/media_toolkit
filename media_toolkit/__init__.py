@@ -39,7 +39,7 @@ def create_app(config_overrides: dict | None = None) -> Flask:
         static_folder=str(_STATIC_DIR),
     )
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
-    app.wsgi_app = PrefixMiddleware(app.wsgi_app)
+    # app.wsgi_app = PrefixMiddleware(app.wsgi_app)
     app.config.update(SESSION_COOKIE_PATH='/media_toolkit')
     app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
     app.secret_key = os.getenv("FLASK_SECRET_KEY", "change-me-why-you-ask")
