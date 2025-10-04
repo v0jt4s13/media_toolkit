@@ -183,34 +183,23 @@
   const API_PREFIX = (window.MEDIA_TOOLKIT_PREFIX || '').replace(/\/$/, '');
   const api = (path) => `${API_PREFIX}${path.startsWith('/') ? '' : '/'}${path}`;
 
-  function disableBtn(el, label = 'Daj mi chwilę, pracuję...') {
-    if (!el) return;
-    el.dataset._label = (el.tagName === 'INPUT') ? el.value : el.textContent;
-    if (el.tagName === 'A') {
-      el.classList.add('is-disabled');
-      el.setAttribute('aria-disabled','true');
-      el.style.pointerEvents = 'none';
-      el.textContent = label;
-    } else {
-      el.disabled = true;
-      if (el.tagName === 'INPUT') el.value = label; else el.textContent = label;
-    }
+  function setStatus(message, isError = false) {
+    statusBox.textContent = message || '';
+    statusBox.style.color = isError ? '#fca5a5' : '#93c5fd';
   }
-  
-  function enableBtn(el) {
-    if (!el) return;
-    if (el.tagName === 'A') {
-      el.classList.remove('is-disabled');
-      el.removeAttribute('aria-disabled');
-      el.style.pointerEvents = '';
-      el.textContent = el.dataset._label || el.textContent;
-    } else {
-      el.disabled = false;
-      if (el.tagName === 'INPUT') el.value = el.dataset._label || el.value;
-      else el.textContent = el.dataset._label || el.textContent;
-    }
-    delete el.dataset._label;
+
+  function fmt(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
   }
+
+  function disableBtn(el, label = 'Pracuję…') {
+    if (!el) return; el.dataset._label = (el.tagName === 'INPUT') ? el.value : el.textContent;
+    if (el.tagName === 'A') { el.classList.add('is-disabled'); el.setAttribute('aria-disabled', 'true'); el.style.pointerEvents = 'none'; el.textContent = label; }
+    else { el.disabled = true; if (el.tagName === 'INPUT') el.value = label; else el.textContent = label; }
+  }
+  function enableBtn(el){ if (!el) return; if (el.tagName === 'A') { el.classList.remove('is-disabled'); el.removeAttribute('aria-disabled'); el.style.pointerEvents = ''; el.textContent = el.dataset._label || el.textContent; } else { el.disabled = false; if (el.tagName === 'INPUT') el.value = el.dataset._label || el.value; else el.textContent = el.dataset._label || el.textContent; } delete el.dataset._label; }
 
   const prefix = window.MEDIA_TOOLKIT_PREFIX || '';
   const joinPath = (path) => {
@@ -228,17 +217,6 @@
     text: '{{ url_for("content_tools.archive_text", entry_id='ENTRY_ID') }}',
     audio: '{{ url_for("content_tools.archive_audio", entry_id='ENTRY_ID') }}',
   };
-
-  function setStatus(message, isError = false) {
-    statusBox.textContent = message || '';
-    statusBox.style.color = isError ? '#fca5a5' : '#93c5fd';
-  }
-
-  function fmt(value) {
-    if (!value) return '';
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
-  }
 
   // --- KLUCZOWA POPRAWKA: fallback bez prefixu przy odpowiedziach != 2xx (np. 404 za ELB/Nginx)
   async function fetchJSON(url, options) {
@@ -380,14 +358,6 @@
         audioEl.src = URL.createObjectURL(b);
         audioEl.play();
       });
-  }
-
-
-  function playAudio_depr(u) {
-    if (!audioEl) return;
-    audioEl.src = joinPath(u);
-    audioEl.classList.remove('hidden');
-    audioEl.play().catch(err => console.warn('Nie można odtworzyć audio.', err));
   }
 
   async function handleSubmit(evt, reuse = false) {

@@ -1,6 +1,6 @@
 {% extends "base-v2.html" %}
 
-{% block title %}Streszczenie artykułu — v2.1 (fullscreen panels){% endblock %}
+{% block title %}Streszczenie artykułu — v2.2 (fullscreen panels){% endblock %}
 {% block header %}Streszczenie artykułu{% endblock %}
 
 {% block extra_styles %}
@@ -9,7 +9,10 @@
   *, *::before, *::after { box-sizing: border-box; }
   .stack { overflow-x: hidden; }
   .panel { max-inline-size: 100%; box-sizing: border-box; overflow-wrap: anywhere; }
-  .panel input[type="url"], .panel input[type="text"], .panel select, .panel textarea { inline-size: 100%; max-inline-size: 100%; }
+  .panel input[type="url"], .panel input[type="text"], .panel select, .panel textarea { 
+    inline-size: 100%; 
+    max-inline-size: 100%; 
+  }
 
   /*
    * v2.1 — Fullscreen panels, smooth snap, light/dark themes, mobile-first
@@ -17,8 +20,8 @@
    */
   :root {
     /* Light as default; dark applied by [data-theme="dark"] */
-    --bg: #f6f7fb;
-    --bg-elev: #ffffff;
+    --bg: #6e758f;
+    --bg-elev:#a8def6;
     --text: #0f172a;
     --text-muted: #475569;
     --brand-1: #0b3d91;  /* primary */
@@ -26,6 +29,7 @@
     --border: rgba(2, 6, 23, 0.08);
     --shadow: 0 10px 30px rgba(2, 6, 23, 0.08);
     --focus: #22d3ee;
+    --field-bg: honeydew;
   }
   :root[data-theme="dark"] {
     --bg: #030712;
@@ -37,6 +41,7 @@
     --border: rgba(148,163,184,0.2);
     --shadow: 0 24px 48px rgba(2,6,23,0.6);
     --focus: #38bdf8;
+    --field-bg: #2c386a;
   }
 
   /* Make base background follow theme */
@@ -80,11 +85,17 @@
     scroll-snap-stop: always;
     margin-block: clamp(8px, 1.4vh, 16px);
   }
-  .panel h2 { margin: 0 0 8px; font-size: clamp(1.25rem, 2.8vw, 1.6rem); font-weight: 750; }
+  .panel h2 { 
+    margin: 0 0 8px; 
+    font-size: clamp(1.25rem, 2.8vw, 1.6rem); 
+    font-weight: 750; 
+    color: var(--text);
+  }
   .muted { color: var(--text-muted); }
 
   /* Form elements */
   label { font-weight: 600; font-size: 0.98rem; }
+
   input[type="url"], input[type="text"], select, textarea {
     width: 100%;
     max-inline-size: 100%;
@@ -92,12 +103,15 @@
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 14px 16px;
-    background: color-mix(in oklab, var(--bg) 92%, black 0%);
+    /* background: color-mix(in oklab, var(--bg) 92%, black 0%); */
     color: var(--text);
     font-size: 1rem;
     outline: none;
     box-shadow: inset 0 0 0 1px transparent;
     transition: box-shadow .15s ease, border-color .15s ease, background .15s ease;
+  }
+  input, select, textarea {
+      background: var(--field-bg);
   }
   textarea { min-block-size: 200px; resize: vertical; }
   input:focus, select:focus, textarea:focus {
@@ -140,6 +154,18 @@
     .stack { scroll-behavior: auto; }
     .btn:active { transform: none; }
   }
+
+
+
+  .header {
+    color: #f8fafc;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: 20px;
+  }
 </style>
 {% endblock %}
 
@@ -150,14 +176,14 @@
 
     <!-- PANEL 1: FORM -->
     <section class="panel" aria-label="Formularz streszczenia">
-      <header style="display:flex; align-items:end; justify-content:space-between; gap:12px; margin-block-end:8px;">
+      <div class="header">
         <h2>Streść artykuł</h2>
-        <div class="inline" style="display:flex; gap:8px; align-items:center;">
+        <!-- <div class="inline" style="display:flex; gap:8px; align-items:center;">
           <button type="button" id="themeToggle" class="btn btn-ghost" aria-pressed="false" title="Przełącz motyw">🌓</button>
-        </div>
-      </header>
+        </div> -->
+      </div>
 
-      <form id="mobileForm" novalidate style="display:grid; gap:14px;">
+      <form id="mobileForm" novalidate style="display:grid;gap:3em;">
         <div>
           <label for="mobile-url">Adres URL</label>
           <input id="mobile-url" type="url" placeholder="https://…" required inputmode="url" autocomplete="url">
@@ -296,6 +322,12 @@
 
   let lastPayload = null;
 
+  const smoothScrollTo = (el, offset = 0) => {
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top, behavior: 'smooth' });
+  };
+  
   const API_PREFIX = (window.MEDIA_TOOLKIT_PREFIX || '').replace(/\/$/, '');
   const api = (path) => `${API_PREFIX}${path.startsWith('/') ? '' : '/'}${path}`;
 
@@ -303,6 +335,19 @@
     statusBox.textContent = message || '';
     statusBox.style.color = isError ? '#ef4444' : 'var(--text-muted)';
   }
+
+  function fmt(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  }
+
+  function disableBtn(el, label = 'Pracuję…') {
+    if (!el) return; el.dataset._label = (el.tagName === 'INPUT') ? el.value : el.textContent;
+    if (el.tagName === 'A') { el.classList.add('is-disabled'); el.setAttribute('aria-disabled', 'true'); el.style.pointerEvents = 'none'; el.textContent = label; }
+    else { el.disabled = true; if (el.tagName === 'INPUT') el.value = label; else el.textContent = label; }
+  }
+  function enableBtn(el){ if (!el) return; if (el.tagName === 'A') { el.classList.remove('is-disabled'); el.removeAttribute('aria-disabled'); el.style.pointerEvents = ''; el.textContent = el.dataset._label || el.textContent; } else { el.disabled = false; if (el.tagName === 'INPUT') el.value = el.dataset._label || el.value; else el.textContent = el.dataset._label || el.textContent; } delete el.dataset._label; }
 
   const prefix = window.MEDIA_TOOLKIT_PREFIX || '';
   const joinPath = (path) => {
@@ -321,23 +366,47 @@
     audio: '{{ url_for("content_tools.archive_audio", entry_id='ENTRY_ID') }}',
   };
 
+  // --- KLUCZOWA POPRAWKA: fallback bez prefixu przy odpowiedziach != 2xx (np. 404 za ELB/Nginx)
   async function fetchJSON(url, options) {
-    const doFetch = async (u, opt) => fetch(u, opt);
-    let res = await doFetch(url, options);
+    const doFetch = async (u, opt) => {
+      console.log(`[fetchJSON] fetch(url,options)`, u, opt);
+      const res = await fetch(u, opt);
+      return { res, u };
+    };
+
+    // 1. Próba z pełnym URL-em (z prefixem)
+    let attempt = await doFetch(url, options);
+    let { res } = attempt;
+
+    // 2. Jeśli nie OK, spróbuj bez /media_toolkit (rewrite może być już zrobiony po stronie Nginx)
     if (!res.ok && url.startsWith('/media_toolkit/')) {
       const noPrefix = url.replace(/^\/media_toolkit/, '');
-      res = await doFetch(noPrefix, options);
+      attempt = await doFetch(noPrefix, options);
+      res = attempt.res;
     }
+
+    // 3. Odczyt JSON (lub błąd)
     if (!res.ok) {
-      const text = await res.text().catch(()=>'');
-      throw new Error(`${res.status} ${res.statusText}${text?` — ${text.slice(0,160)}`:''}`);
+      const text = await res.text().catch(() => '');
+      throw new Error(`${res.status} ${res.statusText}${text ? ` — ${text.slice(0,160)}` : ''}`);
     }
-    const ct = (res.headers.get('content-type')||'').toLowerCase();
-    if (!ct.includes('application/json')) {
-      const head = (await res.text()).replace(/\s+/g,' ').slice(0,200);
-      throw new Error(`Nieprawidłowa odpowiedź serwera: ${head}`);
+
+    try {
+      return await res.json();
+    } catch (err) {
+      // Ostateczny fallback: spróbuj jeszcze bez prefixu, jeśli jeszcze nie próbowaliśmy
+      if (url.startsWith('/media_toolkit/')) {
+        try {
+          const alt = await fetch(url.replace(/^\/media_toolkit/, ''), options);
+          return await alt.json();
+        } catch (e) {
+          console.error('[fetchJSON] res.json() failed after alt:', e);
+          throw err;
+        }
+      }
+      console.error('[fetchJSON] res.json() failed:', err);
+      throw err;
     }
-    return res.json();
   }
 
   async function scrap(u) {
@@ -403,6 +472,23 @@
     buildArchive(data.entries || []);
   }
 
+  async function loadEntry(entry) {
+    const entryUrl = entry.text_url ? joinPath(entry.text_url) : joinPath(endpoints.text.replace('ENTRY_ID', encodeURIComponent(entry.id)));
+    const data = await fetchJSON(entryUrl, { headers: { 'Accept': 'application/json' } });
+    if (!data.ok) throw new Error(data.error || 'Nie udało się pobrać wpisu.');
+    titleField.value = data.title || '';
+    textField.value = data.text || '';
+    lastPayload = { title: data.title || '', text: data.text || '' };
+    if (data.audio_url) playAudio(data.audio_url);
+    setStatus(`Załadowano wpis ${fmt(data.created_at)}`);
+  }
+
+  function playAudio(url){
+    if (!audioEl) return;
+    if (String(url).startsWith('data:')) { audioEl.src = url; audioEl.classList.remove('hidden'); audioEl.play().catch(()=>{}); return; }
+    fetch(url, { credentials: 'include' }).then(r=>r.blob()).then(b=>{ audioEl.src = URL.createObjectURL(b); audioEl.classList.remove('hidden'); audioEl.play().catch(()=>{}); });
+  }
+
   async function handleSubmit(evt, reuse = false) {
     if (evt) evt.preventDefault();
     const btn = evt.submitter || mobileFetch;
@@ -446,21 +532,10 @@
     } finally { enableBtn(btn); }
   }
 
-  function disableBtn(el, label = 'Pracuję…') {
-    if (!el) return; el.dataset._label = (el.tagName === 'INPUT') ? el.value : el.textContent;
-    if (el.tagName === 'A') { el.classList.add('is-disabled'); el.setAttribute('aria-disabled', 'true'); el.style.pointerEvents = 'none'; el.textContent = label; }
-    else { el.disabled = true; if (el.tagName === 'INPUT') el.value = label; else el.textContent = label; }
-  }
-  function enableBtn(el){ if (!el) return; if (el.tagName === 'A') { el.classList.remove('is-disabled'); el.removeAttribute('aria-disabled'); el.style.pointerEvents = ''; el.textContent = el.dataset._label || el.textContent; } else { el.disabled = false; if (el.tagName === 'INPUT') el.value = el.dataset._label || el.value; else el.textContent = el.dataset._label || el.textContent; } delete el.dataset._label; }
-
-  function playAudio(url){
-    if (!audioEl) return;
-    if (String(url).startsWith('data:')) { audioEl.src = url; audioEl.classList.remove('hidden'); audioEl.play().catch(()=>{}); return; }
-    fetch(url, { credentials: 'include' }).then(r=>r.blob()).then(b=>{ audioEl.src = URL.createObjectURL(b); audioEl.classList.remove('hidden'); audioEl.play().catch(()=>{}); });
-  }
-
   form.addEventListener('submit', evt => handleSubmit(evt, false));
   reuseBtn.addEventListener('click', evt => handleSubmit(evt, true));
+
+  // Start
   loadArchive().catch(()=>{});
 </script>
 {% endblock %}
