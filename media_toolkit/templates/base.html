@@ -49,7 +49,11 @@
 
     .nav-toggle-indicator { font-size: 1.4rem; line-height: 1; cursor: pointer; }
     nav { display: none; flex-direction: column; gap: 1.1rem; padding: 1.2rem; background: rgba(10,24,52,0.96); position: absolute; top: 100%; left: 0; right: 0; box-shadow: 0 28px 48px rgba(2,6,23,0.5); border-bottom-left-radius: 28px; border-bottom-right-radius: 28px; backdrop-filter: blur(14px); z-index: 15; }
-    nav.open { display: flex; position: relative; }
+    nav.open { 
+      display: flex; 
+      position: relative; 
+      top: 490px;
+    }
     nav a { display: block; color: #f8fafc; font-weight: 600; font-size: 1.02rem; padding: .85rem 1rem; border-radius: 16px; background: rgba(30,41,59,0.65); box-shadow: inset 0 0 0 1px rgba(148,163,184,0.25); transition: transform .18s ease, background .18s ease; }
     nav a:hover { background: rgba(59,130,246,0.32); transform: translateY(-1px); }
     nav a:active { transform: scale(0.98); }
