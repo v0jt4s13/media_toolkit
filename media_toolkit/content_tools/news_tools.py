@@ -235,7 +235,7 @@ def _fallback_summarize(text: str, target_words: int) -> str:
 
 
 def _summarize_with_openai(text: str, target_words: int, language: str = "pl") -> Optional[str]:
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("MEDIA_TOOLKIT_OPENAI_API_KEY")
     if not api_key:
         return None
 
@@ -311,9 +311,9 @@ def scrap_page(url: str, language: str = "pl") -> Dict:
 
 
 def ask_model_openai(system_prompt: str, user_prompt: str, temperature: float = 0.5) -> str:
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("MEDIA_TOOLKIT_OPENAI_API_KEY")
     if not api_key:
-        raise RuntimeError("Brak klucza OPENAI_API_KEY")
+        raise RuntimeError("Brak klucza MEDIA_TOOLKIT_OPENAI_API_KEY")
     client_new = None
     try:
         from openai import OpenAI  # type: ignore

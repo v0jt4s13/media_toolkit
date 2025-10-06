@@ -53,6 +53,7 @@ def get_config(key: Optional[str] = None) -> Dict[str, Dict[str, str]]:
             "YTDLP_COOKIES_FILE",
             "YTDLP_COOKIES_FROM_BROWSER",
             "MEDIA_TOOLKIT_URL_PREFIX",
+            "MEDIA_TOOLKIT_OPENAI_API_KEY",
         ):
             value = env_snapshot.get(var)
             if value:
