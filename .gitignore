@@ -35,3 +35,6 @@ media_toolkit/logs
 **/data_settings
 
 **/media_toolkit/content_tools/output
+**/media_toolkit/audiototext/jobs
+media_toolkit/content_tools/output
+media_toolkit/audiototext/jobs
