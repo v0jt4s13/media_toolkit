@@ -36,5 +36,12 @@ media_toolkit/logs
 
 **/media_toolkit/content_tools/output
 **/media_toolkit/audiototext/jobs
+**/media_toolkit/audiototext/results
+**/media_toolkit/audiototext/uploads
+**/media_toolkit.code-workspace
+
 media_toolkit/content_tools/output
 media_toolkit/audiototext/jobs
+media_toolkit/audiototext/results
+media_toolkit/audiototext/uploads
+media_toolkit.code-workspace
