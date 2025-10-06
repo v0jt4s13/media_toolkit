@@ -1,0 +1,438 @@
+{% extends "base.html" %}
+
+{% block title %}Streszczenie artykułu - v2.0 {% endblock %}
+{% block header %}Streszczenie artykułu{% endblock %}
+
+{% block extra_styles %}
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { background:#030712; color:#e2e8f0; }
+  main { padding:0; }
+  .mobile-wrap {
+    min-height: calc(100vh - 140px);
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+    padding:24px 16px 40px;
+    background:linear-gradient(180deg,#0f172a 0%,#030712 100%);
+  }
+  .panel {
+    background: rgba(15,23,42,0.9);
+    border: 1px solid rgba(148,163,184,0.2);
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: 0 24px 48px rgba(2,6,23,0.6);
+    backdrop-filter: blur(12px);
+    width: 100%;
+    max-width: 100%;
+  }
+  .panel h2 { margin:0 0 12px; font-size:1.5rem; font-weight:700; }
+  label { font-size:1rem; font-weight:600; margin-bottom:6px; display:block; }
+  form { display:flex; flex-direction:column; gap:18px; }
+  input[type="url"], select, textarea {
+    width:100%;
+    max-width:100%;
+    border:none;
+    border-radius:18px;
+    padding:16px 18px;
+    font-size:1.05rem;
+    background:rgba(30,41,59,0.85);
+    color:#f8fafc;
+    box-shadow: inset 0 0 0 1px rgba(148,163,184,0.2);
+    box-sizing:border-box;
+  }
+  textarea { min-height:180px; resize:vertical; }
+  button {
+    width:100%;
+    max-width:100%;
+    border:none;
+    border-radius:18px;
+    padding:18px;
+    font-size:1.1rem;
+    font-weight:700;
+    letter-spacing:0.02em;
+    cursor:pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-primary { background:linear-gradient(135deg,#0ea5e9,#7c3aed); color:#f8fafc; }
+  .btn-secondary { background:rgba(30,41,59,0.7); color:#e2e8f0; }
+  button:active { transform:scale(0.98); box-shadow:0 8px 16px rgba(15,23,42,0.5); }
+  .toggle-row { 
+    display:flex; 
+    align-items:center; 
+    gap:12px; 
+    margin-top:10px; 
+    justify-content: flex-end;
+    margin: 20px 5px;
+  }
+  .toggle-row input { width:auto; accent-color:#38bdf8; transform:scale(1.4); }
+  .status { font-size:0.95rem; min-height:1.4em; margin:12px 0; color:#93c5fd; }
+  .result { display:flex; flex-direction:column; gap:14px; }
+  .result textarea { min-height:220px; }
+  audio {
+    width:100%;
+    border-radius:16px;
+    background:#1e293b;
+    margin-top:8px;
+  }
+  .archive { display:flex; flex-direction:column; gap:18px; }
+  .archive-item {
+    border-radius:20px;
+    padding:16px;
+    background:rgba(15,23,42,0.75);
+    box-shadow:0 12px 24px rgba(2,6,23,0.4);
+  }
+  .archive-meta { color:#94a3b8; font-size:0.9rem; }
+  .archive-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; }
+  .archive-actions a,
+  .archive-actions button {
+    flex:1 1 32%;
+    font-size:0.95rem;
+    border-radius:16px;
+    padding:14px;
+    max-width:100%;
+  }
+  .archive-actions a { text-align: center; }
+  @media (min-width: 768px) {
+    .mobile-wrap { max-width:640px; margin:0 auto; }
+  }
+  a.button.is-disabled { opacity: .6; cursor: not-allowed; pointer-events: none; }
+  .row { margin-bottom: 16px; }
+  label { display:block; font-weight:600; margin-bottom:6px; }
+  input[type="file"], select, input[type="text"], input[type="url"] { width:100%; padding:10px; border:1px solid #ccc; border-radius:8px; }
+  button { padding:10px 16px; border:0; border-radius:10px; cursor:pointer; }
+  .primary { background:#0b3d91; color:white; }
+  .muted { color:#4b5563; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .status { padding:12px; border-radius:10px; background:#111827; color:#d1d5db; }
+  .hidden { display:none; }
+  a.button { text-decoration:none; display:inline-block; }
+  .transcript { white-space: pre-wrap; padding: 12px; background: #111827; color:#f3f4f6; border: 1px solid #e5e7eb; border-radius: 10px; min-height: 80px; }
+  .mode-btn { padding:8px 12px; border:1px solid #d1d5db; background:#f9fafb; cursor:pointer; border-radius:8px 8px 0 0; }
+  .mode-btn.active { background: #0b3d91; color:white; border-color:#0b3d91; }
+  #uploadForm { border: 2px solid #0b3d91; padding: 16px; border-radius: 0 16px 16px 16px; background:#f9fafb; }
+  .inline { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .xs { font-size: .85rem; }
+  div#result { margin: 0.9em; width: 90%; text-align: right; }
+  a#downloadLink { padding: 8px; }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<script>window.MEDIA_TOOLKIT_PREFIX = "{{ media_toolkit_prefix|default('') }}";</script>
+<div class="mobile-wrap">
+  <div class="panel">
+    <h2>Streść artykuł z:</h2>
+    <form id="mobileForm" novalidate>
+      <input id="mobile-url" type="url" placeholder="https://…" required>
+      <select id="mobile-prompt" required>
+        <option value="">— długość streszczenia —</option>
+        {% for prompt in prompts %}
+          <option value="{{ prompt.id }}">{{ prompt.label }}</option>
+        {% endfor %}
+      </select>
+
+      <div class="toggle-row">
+        <input id="mobile-tts" type="checkbox">
+        <span>Nagraj narrację (TTS)</span>
+      </div>
+
+      <button id="mobileFetch" class="btn-primary" type="submit">Streść mi to</button>
+      <button id="mobileReuse" class="btn-secondary" type="button" style="margin-top:12px;">Użyj ponownie danych</button>
+    </form>
+    <div id="mobileStatus" class="status"></div>
+  </div>
+
+  <div class="panel result">
+    <h2>Wynik</h2>
+    <input id="mobile-title" type="text" readonly placeholder="Tytuł">
+    <textarea id="mobile-text" readonly placeholder="Tekst"></textarea>
+    <audio id="mobile-audio" controls class="hidden"></audio>
+  </div>
+
+  <div class="panel archive">
+    <h2>Archiwum</h2>
+    <div id="mobileArchive" class="archive-list"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const statusBox = document.getElementById('mobileStatus');
+  const urlInput = document.getElementById('mobile-url');
+  const promptSelect = document.getElementById('mobile-prompt');
+  const titleField = document.getElementById('mobile-title');
+  const textField = document.getElementById('mobile-text');
+  const audioEl = document.getElementById('mobile-audio');
+  const form = document.getElementById('mobileForm');
+  const reuseBtn = document.getElementById('mobileReuse');
+  const ttsCheckbox = document.getElementById('mobile-tts');
+  const archiveEl = document.getElementById('mobileArchive');
+  const mobileFetch = document.getElementById('mobileFetch');
+
+  let lastPayload = null;
+
+  const smoothScrollTo = (el, offset = 0) => {
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top, behavior: 'smooth' });
+  };
+
+  const API_PREFIX = (window.MEDIA_TOOLKIT_PREFIX || '').replace(/\/$/, '');
+  const api = (path) => `${API_PREFIX}${path.startsWith('/') ? '' : '/'}${path}`;
+
+  function setStatus(message, isError = false) {
+    statusBox.textContent = message || '';
+    statusBox.style.color = isError ? '#fca5a5' : '#93c5fd';
+  }
+
+  function fmt(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  }
+
+  function disableBtn(el, label = 'Pracuję…') {
+    if (!el) return; el.dataset._label = (el.tagName === 'INPUT') ? el.value : el.textContent;
+    if (el.tagName === 'A') { el.classList.add('is-disabled'); el.setAttribute('aria-disabled', 'true'); el.style.pointerEvents = 'none'; el.textContent = label; }
+    else { el.disabled = true; if (el.tagName === 'INPUT') el.value = label; else el.textContent = label; }
+  }
+  function enableBtn(el){ if (!el) return; if (el.tagName === 'A') { el.classList.remove('is-disabled'); el.removeAttribute('aria-disabled'); el.style.pointerEvents = ''; el.textContent = el.dataset._label || el.textContent; } else { el.disabled = false; if (el.tagName === 'INPUT') el.value = el.dataset._label || el.value; else el.textContent = el.dataset._label || el.textContent; } delete el.dataset._label; }
+
+  const prefix = window.MEDIA_TOOLKIT_PREFIX || '';
+  const joinPath = (path) => {
+    if (!path) return path;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    if (prefix && path.startsWith(prefix)) return path;
+    if (!path.startsWith('/')) path = `/${path}`;
+    return prefix ? `${prefix}${path}` : path;
+  };
+
+  const endpoints = {
+    scrap: joinPath('{{ url_for("content_tools.scrap_url") }}'),
+    apply: joinPath('{{ url_for("content_tools.apply_prompt") }}'),
+    archive: joinPath('{{ url_for("content_tools.archive_list") }}'),
+    text: '{{ url_for("content_tools.archive_text", entry_id='ENTRY_ID') }}',
+    audio: '{{ url_for("content_tools.archive_audio", entry_id='ENTRY_ID') }}',
+  };
+
+  // --- KLUCZOWA POPRAWKA: fallback bez prefixu przy odpowiedziach != 2xx (np. 404 za ELB/Nginx)
+  async function fetchJSON(url, options) {
+    const doFetch = async (u, opt) => {
+      console.log(`[fetchJSON] fetch(url,options)`, u, opt);
+      const res = await fetch(u, opt);
+      return { res, u };
+    };
+
+    // 1. Próba z pełnym URL-em (z prefixem)
+    let attempt = await doFetch(url, options);
+    let { res } = attempt;
+
+    // 2. Jeśli nie OK, spróbuj bez /media_toolkit (rewrite może być już zrobiony po stronie Nginx)
+    if (!res.ok && url.startsWith('/media_toolkit/')) {
+      const noPrefix = url.replace(/^\/media_toolkit/, '');
+      attempt = await doFetch(noPrefix, options);
+      res = attempt.res;
+    }
+
+    // 3. Odczyt JSON (lub błąd)
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`${res.status} ${res.statusText}${text ? ` — ${text.slice(0,160)}` : ''}`);
+    }
+
+    try {
+      return await res.json();
+    } catch (err) {
+      // Ostateczny fallback: spróbuj jeszcze bez prefixu, jeśli jeszcze nie próbowaliśmy
+      if (url.startsWith('/media_toolkit/')) {
+        try {
+          const alt = await fetch(url.replace(/^\/media_toolkit/, ''), options);
+          return await alt.json();
+        } catch (e) {
+          console.error('[fetchJSON] res.json() failed after alt:', e);
+          throw err;
+        }
+      }
+      console.error('[fetchJSON] res.json() failed:', err);
+      throw err;
+    }
+  }
+
+  async function scrap(u) {
+    console.log(`[scrap] return fetchJSON(${endpoints.scrap}, url=${u})`);
+    return fetchJSON(endpoints.scrap, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: u }),
+    });
+  }
+
+  async function applyPrompt(promptId, data, tts) {
+    return fetchJSON(endpoints.apply, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ prompt_id: promptId, data, text_to_speech: tts }),
+    });
+  }
+
+  function buildArchive(entries) {
+    if (!archiveEl) return;
+    archiveEl.innerHTML = '';
+    if (!entries.length) {
+      archiveEl.innerHTML = '<div class="muted">Brak zapisanych wpisów.</div>';
+      return;
+    }
+    entries.forEach(entry => {
+      const card = document.createElement('div');
+      card.className = 'archive-item';
+
+      const name = document.createElement('div');
+      name.innerHTML = `<strong>${entry.title || '(bez tytułu)'}</strong>`;
+      const meta = document.createElement('div');
+      meta.className = 'archive-meta';
+      meta.textContent = [entry.prompt_id, fmt(entry.created_at)].filter(Boolean).join(' • ');
+
+      const actions = document.createElement('div');
+      actions.className = 'archive-actions';
+
+      if (entry.audio_url) {
+        const playBtn = document.createElement('button');
+        playBtn.className = 'btn-secondary';
+        playBtn.textContent = 'Odtwórz';
+        playBtn.onclick = () => playAudio(entry.audio_url);
+        actions.appendChild(playBtn);
+
+        const dl = document.createElement('a');
+        dl.className = 'btn-secondary';
+        dl.textContent = 'Pobierz audio';
+        dl.href = joinPath(entry.audio_url);
+        dl.setAttribute('download', '');
+        actions.appendChild(dl);
+      }
+
+      const textLink = document.createElement('a');
+      textLink.className = 'btn-secondary';
+      textLink.textContent = 'Pobierz tekst';
+      textLink.href = entry.text_url ? joinPath(entry.text_url) : joinPath(endpoints.text.replace('ENTRY_ID', encodeURIComponent(entry.id)));
+      textLink.target = '_blank';
+      actions.appendChild(textLink);
+
+      card.appendChild(name);
+      card.appendChild(meta);
+      card.appendChild(actions);
+      archiveEl.appendChild(card);
+    });
+  }
+
+  async function loadArchive() {
+    const data = await fetchJSON(endpoints.archive, { headers: { 'Accept': 'application/json' } });
+    if (!data.ok) throw new Error(data.error || 'Archiwum niedostępne');
+    buildArchive(data.entries || []);
+  }
+
+  async function loadEntry(entry) {
+    const entryUrl = entry.text_url ? joinPath(entry.text_url) : joinPath(endpoints.text.replace('ENTRY_ID', encodeURIComponent(entry.id)));
+    const data = await fetchJSON(entryUrl, { headers: { 'Accept': 'application/json' } });
+    if (!data.ok) throw new Error(data.error || 'Nie udało się pobrać wpisu.');
+    titleField.value = data.title || '';
+    textField.value = data.text || '';
+    lastPayload = { title: data.title || '', text: data.text || '' };
+    if (data.audio_url) playAudio(data.audio_url);
+    setStatus(`Załadowano wpis ${fmt(data.created_at)}`);
+  }
+
+  function playAudio(possibleDataUrlOrPath) {
+    if (possibleDataUrlOrPath.startsWith('data:')) {
+      // Bez fetcha – od razu do <audio>
+      audioEl.src = possibleDataUrlOrPath;
+      audioEl.play();
+      return;
+    }
+    // dotychczasowa ścieżka: pobieranie z serwera
+    fetch(possibleDataUrlOrPath, { credentials: 'include' })
+      .then(r => r.blob())
+      .then(b => {
+        audioEl.src = URL.createObjectURL(b);
+        audioEl.play();
+      });
+  }
+
+  async function handleSubmit(evt, reuse = false) {
+    if (evt) evt.preventDefault();
+
+    const btn = evt.submitter || mobileFetch;
+    disableBtn(btn);
+
+    const urlVal = urlInput.value.trim();
+    const promptId = promptSelect.value.trim();
+    const wantsTts = !!ttsCheckbox?.checked;
+
+    if (!urlVal) { setStatus('Podaj adres URL.', true); enableBtn(btn); return; }
+    if (!promptId) { setStatus('Wybierz prompt.', true); enableBtn(btn); return; }
+
+    try {
+      if (audioEl) {
+        audioEl.pause();
+        audioEl.classList.add('hidden');
+        audioEl.removeAttribute('src');
+      }
+
+      if (!reuse) {
+        setStatus('Pobieram artykuł…');
+        const scraped = await scrap(urlVal);
+        if (!scraped.ok) throw new Error(scraped.error || 'Nie udało się pobrać danych.');
+        lastPayload = scraped.payload || {};
+        titleField.value = lastPayload.title || '';
+        textField.value = lastPayload.text || '';
+      }
+      
+      if (!lastPayload) throw new Error('Brak danych wejściowych.');
+
+      setStatus('Generuję streszczenie…');
+      const payload = {
+        source_url: urlVal,
+        title: lastPayload.title || '',
+        text: lastPayload.text || '',
+        media: Array.isArray(lastPayload.media) ? lastPayload.media : [],
+        language: 'pl'
+      };
+
+      const result = await applyPrompt(promptId, payload, wantsTts);
+      if (!result.ok) throw new Error(result.error || 'Błąd modelu');
+
+      titleField.value = result.result_title || payload.title || '';
+      textField.value = result.result_text || '';
+      lastPayload = { title: titleField.value, text: textField.value };
+      
+      if (result.audio_base64) {
+        playAudio(`data:audio/mp3;base64,${result.audio_base64}`);
+      } else if (result.audio_url) {
+        playAudio(result.audio_url);
+      }
+
+      if (result.audio_error) {
+        setStatus(`Tekst gotowy. Audio: ${result.audio_error}`, true);
+      } else {
+        setStatus('Gotowe. Wynik zapisano w archiwum.');
+      }
+
+      await loadArchive();
+
+    } catch (error) {
+      console.error('function handleSubmit Error:', error);
+      setStatus(error.message || 'Wystąpił błąd.', true);
+    } finally {
+      enableBtn(btn);
+    }
+  }
+
+  form.addEventListener('submit', evt => handleSubmit(evt, false));
+  reuseBtn.addEventListener('click', evt => handleSubmit(evt, true));
+
+  // Start
+  loadArchive().catch(err => console.warn('loadArchive error:', err));
+</script>
+{% endblock %}
