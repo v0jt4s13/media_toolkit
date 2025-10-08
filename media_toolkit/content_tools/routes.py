@@ -74,6 +74,7 @@ def _with_prefix(path: Optional[str]) -> Optional[str]:
     try:
         prefix = current_app.config.get("MEDIA_TOOLKIT_URL_PREFIX", "")
     except Exception as err:
+        audiototext_logger.error(f'❌ _with_prefix Error: {err}')
         print('_with_prefix', err)
     
     if prefix and path.startswith("/") and not path.startswith(prefix + "/"):
@@ -148,7 +149,7 @@ def scrap_url():
         audiototext_logger.info(f'data: {data}')
 
     except Exception as exc:  # pragma: no cover - network failures
-        errors_logger.error(f'exc==>{exc}')
+        audiototext_logger.error(f'❌ Error: {str(exc)}')
         return jsonify({"ok": False, "error": str(exc)}), 500
 
     return jsonify({"ok": True, "payload": data})
@@ -157,34 +158,31 @@ def scrap_url():
 @content_bp.route("/apply-prompt", methods=["POST"])
 @login_required(role=_ALLOWED_ROLES)
 def apply_prompt():
-    audiototext_logger.info('AAAAAAAAAAAAa')
     payload = request.get_json(silent=True) or {}
-    audiototext_logger.info('BBBBBBBBBBB')
     prompt_id = (payload.get("prompt_id") or "").strip()
-    audiototext_logger.info('CCCCCCCCCCCC')
     data = payload.get("data") or {}
-    audiototext_logger.info('DDDDDDDDDDDD')
     want_tts = bool(payload.get("text_to_speech"))
-    audiototext_logger.info('EEEEEEEEEEE')
-
+    
     prompt = get_prompt_by_id(prompt_id)
     audiototext_logger.info(f'prompt prompt prompt \n{prompt}')
     if not prompt:
         return jsonify({"ok": False, "error": "Prompt not found"}), 404
-    audiototext_logger.info('FFFFFFFFFF')
     try:
         user_payload = json.dumps(data, ensure_ascii=False, indent=2)
-        audiototext_logger.info('GGGGGGGGGGGg')
     except Exception:
-        audiototext_logger.info('HHHHHHHHHH')
         user_payload = str(data)
 
     user_prompt = f"{prompt['user_prefix']}\n{user_payload}"
-    audiototext_logger.info('IIIIIIIIIII')
+
     try:
+
+        audiototext_logger.info(f'ask_model_openai({prompt["system"]}, {user_prompt})')
         result_text = ask_model_openai(prompt["system"], user_prompt)
-        audiototext_logger.info('JJJJJJJJ')
+        audiototext_logger.info('result_text from ask_model_openai')
+        audiototext_logger.info(result_text)
+
     except Exception as exc:  # pragma: no cover - model errors
+        audiototext_logger.error(f'❌ Error: {str(exc)}')
         return jsonify({"ok": False, "error": str(exc)}), 500
 
     response: Dict[str, Any] = {"ok": True, "result_text": result_text}
@@ -194,9 +192,11 @@ def apply_prompt():
     audio_bytes: Optional[bytes] = None
     if want_tts and result_text:
         try:
+            audiototext_logger.info(f'synthesize_speech({result_text})')
             audio_bytes = synthesize_speech(result_text)
             response["audio_base64"] = base64.b64encode(audio_bytes).decode("ascii")
         except Exception as exc:  # pragma: no cover - dependency issues
+            audiototext_logger.error(f'❌ Error: {str(exc)}')
             response["audio_error"] = str(exc)
             audio_bytes = None
 
