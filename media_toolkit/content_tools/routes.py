@@ -149,7 +149,7 @@ def scrap_url():
         audiototext_logger.info(f'data: {data}')
 
     except Exception as exc:  # pragma: no cover - network failures
-        audiototext_logger.error(f'❌ Error: {str(exc)}')
+        audiototext_logger.error(f'❌ scrap_url() Error: {str(exc)}')
         return jsonify({"ok": False, "error": str(exc)}), 500
 
     return jsonify({"ok": True, "payload": data})
@@ -182,7 +182,7 @@ def apply_prompt():
         audiototext_logger.info(result_text)
 
     except Exception as exc:  # pragma: no cover - model errors
-        audiototext_logger.error(f'❌ Error: {str(exc)}')
+        audiototext_logger.error(f'❌ apply_prompt() Error1: {str(exc)}')
         return jsonify({"ok": False, "error": str(exc)}), 500
 
     response: Dict[str, Any] = {"ok": True, "result_text": result_text}
@@ -196,7 +196,7 @@ def apply_prompt():
             audio_bytes = synthesize_speech(result_text)
             response["audio_base64"] = base64.b64encode(audio_bytes).decode("ascii")
         except Exception as exc:  # pragma: no cover - dependency issues
-            audiototext_logger.error(f'❌ Error: {str(exc)}')
+            audiototext_logger.error(f'❌ apply_prompt() Error2: {str(exc)}')
             response["audio_error"] = str(exc)
             audio_bytes = None
 
